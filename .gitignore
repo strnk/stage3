@@ -1,0 +1,6 @@
+stage3
+stage3.sym
+stage3.map
+*~
+*.o
+boot

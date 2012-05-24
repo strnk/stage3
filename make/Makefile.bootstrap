@@ -1,0 +1,5 @@
+BOOTSTRAP   := $(SRC)/bootstrap
+
+BOOTSTRAP_SRC := boot.S
+
+SOURCES := $(SOURCES) $(addprefix $(BOOTSTRAP)/, $(BOOTSTRAP_SRC))

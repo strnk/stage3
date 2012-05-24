@@ -1,0 +1,4 @@
+display_library: sdl
+megs:	64
+ata0-master: type=disk, path=boot, mode=flat, cylinders=40, heads=16, spt=63
+boot: disk

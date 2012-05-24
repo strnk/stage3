@@ -1,0 +1,6 @@
+LIBC            := $(SRC)/lib/libc
+LIBC_STDIO_SRC  := putchar.c puts.c vsnprintf.c snprintf.c printf.c \
+                    atoi.c errno.c
+
+SOURCES :=  $(SOURCES)  \
+            $(addprefix $(LIBC)/, $(LIBC_STDIO_SRC))

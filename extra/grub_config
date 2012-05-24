@@ -1,0 +1,3 @@
+set prefix=(hd0,1)/grub
+configfile /grub/grub.cfg
+

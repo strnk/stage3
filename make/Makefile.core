@@ -1,0 +1,14 @@
+CORE        := $(SRC)/core
+CORE_SRC    := stage3.c multiboot.c tty.c
+
+CORE_HW     := $(CORE)/hw
+CORE_HW_SRC := interrupts.c interrupt_handlers.c interrupt_wrappers.S \
+                segmentation.c msr.c io.c apic.c pic.c cpu.c cpuid.S
+
+CORE_TTY        := $(CORE)/tty
+CORE_TTY_SRC    := videomem.c
+
+SOURCES :=  $(SOURCES)  \
+            $(addprefix $(CORE)/, $(CORE_SRC))  \
+            $(addprefix $(CORE_HW)/, $(CORE_HW_SRC)) \
+            $(addprefix $(CORE_TTY)/, $(CORE_TTY_SRC)) 
