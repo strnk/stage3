@@ -1,0 +1,21 @@
+display_library: x
+cpu: count=1
+cpuid: mmx=1, sep=1, sse=sse4_2, aes=1
+megs: 128
+
+clock: sync=none, time0=local
+romimage: file=$BXSHARE/BIOS-bochs-latest
+vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
+
+#ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+#ata0-master: type=disk, mode=flat, path="boot", translation=auto, biosdetect=auto
+#boot: disk
+
+floppya: 1_44=floppy.img, status=inserted
+boot:floppy
+
+ata1: enabled=0
+ata2: enabled=0
+ata3: enabled=0
+
+vga: extension=vbe
