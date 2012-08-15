@@ -89,7 +89,8 @@ checkError() {
 
 # Zero-fill the image file
 echo -n "Initializing $IMAGE_FILE ... "
-dd if=/dev/zero of="$IMAGE_FILE" bs=$SECTOR_SIZE count=$SECTOR_COUNT > /dev/null 2>/dev/null
+bximage -hd -mode=flat -size=$(($SECTOR_COUNT/1024)) -q "$IMAGE_FILE"
+#dd if=/dev/zero of="$IMAGE_FILE" bs=$SECTOR_SIZE count=$SECTOR_COUNT > /dev/null 2>/dev/null
 checkError "ok : $(du -h --apparent-size $IMAGE_FILE | cut -f1)"
 echo
 
@@ -174,10 +175,10 @@ sudo grub-setup --device-map="${GRUB}/device.map" --directory="${GRUB}" --root-d
 checkError
 
 ## Launch a shell for debugging purpose
-#cd device
-#bash
-#cd ..
-#sleep 1
+cd device
+bash
+cd ..
+sleep 1
 
 echo -n "Unmounting filesystem ... "
 sudo umount "$LOOP_FS"

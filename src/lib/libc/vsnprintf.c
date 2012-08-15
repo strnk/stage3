@@ -14,9 +14,7 @@ vsnprintf(char *str, size_t len, const char *format, va_list ap)
 
     if (!str || !format || (len < 0))
         return -1;
-
-
-
+        
     result = 0;
     for(i = 0; format[i] != 0; i++)
     {
@@ -30,6 +28,64 @@ vsnprintf(char *str, size_t len, const char *format, va_list ap)
                     case '%':
                     {
                         PUTCHAR('%');
+                        break;
+                    }
+                    
+                    case 'l':
+                    {
+                        i++;
+                        
+                        switch (format[i])
+                        {
+                            case 'i':
+                            case 'd':
+                            {                       
+                                long int integer = va_arg(ap, long int);
+                                int cpt2 = 0;
+                                char str_int[32];
+
+                                if (integer<0)
+                                    PUTCHAR('-');
+
+                                do {
+                                    long int m10 = integer%10;
+                                    m10 = (m10 < 0)? -m10:m10;
+                                    str_int[cpt2++] = (char)('0'+ m10);
+                                    integer=integer/10;
+                                } while (integer != 0);
+
+                                for(cpt2 = cpt2 - 1 ; cpt2 >= 0 ; cpt2--)
+                                    PUTCHAR(str_int[cpt2]);
+
+                                break;
+                            }
+                            
+                            case 'x':
+                            {
+                                unsigned int hexa = va_arg(ap,int);
+                                unsigned int nb;
+                                int i;
+                                
+                                for (i=0 ; i < 16 ; i++)
+                                {
+                                    nb = (unsigned int)(hexa << (i*4));
+                                    nb = (nb >> 28) & 0xf;
+
+                                    if (nb < 10)
+                                        PUTCHAR('0'+nb);
+                                    else
+                                        PUTCHAR('a'+(nb-10));
+                                }
+                                
+                                break;
+                            }
+                            
+                            default:
+                                PUTCHAR('%');
+                                PUTCHAR('l');
+                                PUTCHAR(format[i]);
+                        }
+                        
                         break;
                     }
                     

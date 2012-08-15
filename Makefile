@@ -1,6 +1,17 @@
+PHYS_KBASE  := 0x0000000000200000
+VIRT_KBASE  := 0xFFFFFFFF80000000
+
 CC          := gcc
-CFLAGS      := -Wall -nostdlib -nostdinc -ffreestanding -m32 -DSTAGE3 -g
-LDFLAGS     := --warn-common -melf_i386 
+CFLAGS      := -g -m64 -Wall \
+               -mno-red-zone -mcmodel=large \
+               -nostdlib -nostdinc -ffreestanding \
+               -DSTAGE3 -D__PHYS_KBASE=$(PHYS_KBASE) \
+               -D__VIRT_KBASE=$(VIRT_KBASE)
+LD          := ld
+LDFLAGS     := --defsym PHYS_KBASE=$(PHYS_KBASE) \
+                --defsym VIRT_KBASE=$(VIRT_KBASE) \
+                --warn-common
+                
 KERNEL      := stage3
 MAP         := stage3.map
 BOOT_IMAGE  := boot
@@ -25,6 +36,16 @@ CC_INCLUDES := $(addprefix -I, $(INCLUDES))
 # Main target
 all: $(BOOT_IMAGE) $(MAP)
 
+runb: $(BOOT_IMAGE)
+	qemu-system-x86_64 -hda $(BOOT_IMAGE) -net none -m 4 -no-reboot
+    
+rund: $(KERNEL)
+	qemu-system-x86_64 -kernel $(KERNEL) -net none -m 4 -no-reboot -no-shutdown -s -monitor stdio
+	
+run: $(KERNEL)
+	qemu-system-x86_64 -kernel $(KERNEL) -net none -m 4 -no-reboot
+	
+	
 $(BOOT_IMAGE): $(KERNEL)
 ifeq ($(wildcard $(BOOT_IMAGE)), )
 	./extra/mkboot.sh $(BOOT_IMAGE) $<
@@ -39,7 +60,7 @@ $(KERNEL): $(OBJECTS) $(SRC)/bootstrap/linker.lds
 
 $(MAP): $(KERNEL)
 	@echo [MAP] $(subst $(PWD)/,,$@)
-	@nm -C $< | cut -d ' ' -f 1,3 > $@
+	@nm -C $< | cut -d ' ' -f 1,3 | sort > $@
 
 # Create objects from C source code
 %.o: %.c
@@ -49,7 +70,7 @@ $(MAP): $(KERNEL)
 # Create objects from assembler (.S) source code
 %.o: %.S
 	@echo [AS] $(subst $(PWD)/,,$@)
-	@$(CC) $(CC_INCLUDES) -c $< $(CFLAGS) -DASM_SOURCE=1 -o $@
+	@$(CC) $(CC_INCLUDES) -c $< $(CFLAGS) -DASM_SOURCE=1 -DASM_FILE=1 -o $@
 
 # Clean directory
 clean:

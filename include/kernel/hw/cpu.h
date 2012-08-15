@@ -6,24 +6,21 @@
 
 struct cpu_context
 {
-    uint16_t    __padding;
+    uint32_t    __padding;
     
     uint16_t    gs;
     uint16_t    fs;
-    uint16_t    es;
-    uint16_t    ds;
-    uint16_t    ss;
-    uint32_t    edx;
-    uint32_t    ecx;
-    uint32_t    ebx;
-    uint32_t    eax;
-    uint32_t    esi;
-    uint32_t    edi;
-    uint32_t    ebp;
-    uint32_t    error;
-    uint32_t    eip;
-    uint32_t    cs;
-    uint32_t    eflags;
+    uint64_t    rdx;
+    uint64_t    rcx;
+    uint64_t    rbx;
+    uint64_t    rax;
+    uint64_t    rsi;
+    uint64_t    rdi;
+    uint64_t    rbp;
+    uint64_t    error;
+    uint64_t    rip;
+    uint16_t    cs;
+    uint64_t    rflags;
 } __pack;
 
 

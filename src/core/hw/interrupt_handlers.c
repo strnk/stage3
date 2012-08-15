@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-extern uint32_t __exception_wrappers[INTERRUPTS_EXCEPTION_COUNT];
+extern uint64_t __exception_wrappers[INTERRUPTS_EXCEPTION_COUNT];
 exception_handler_t __exception_handlers[INTERRUPTS_EXCEPTION_COUNT];
 interrupt_handler_t __interrupt_handlers[INTERRUPTS_MASKABLE_COUNT];
 
@@ -24,25 +24,25 @@ default_exception_handler(int exception, const struct cpu_context *context)
     printf(COLOR(ISO6429_BG_BLACK) LCOLOR(ISO6429_GREY));
     tty_move_cursor(0,1); 
     
-    printf("Exception %d at 0x%x with error %d\nContext from 0x%x: \n",
-        exception, context->eip, context->error, (uint32_t)context);
+    printf("Exception %d at 0x%lx with error %d\nContext from 0x%lx: \n",
+        exception, context->rip, context->error, (uint64_t)context);
         
-    printf("  EAX=0x%x    EBX=0x%x    ECX=0x%x    EDX=0x%x\n", 
-        context->eax, context->ebx, context->ecx, context->edx);
-    printf("  ESI=0x%x    EDI=0x%x\n", 
-        context->esi, context->edi);
-    printf("  EBP=0x%x\n", 
-        context->ebp);
+    printf("  RAX=0x%lx    RBX=0x%lx    RCX=0x%lx    RDX=0x%lx\n", 
+        context->rax, context->rbx, context->rcx, context->rdx);
+    printf("  RSI=0x%lx    RDI=0x%lx\n", 
+        context->rsi, context->rdi);
+    printf("  RBP=0x%lx\n", 
+        context->rbp);
         
-    printf("  SS=0x%x    DS=0x%x    ES=0x%x    FS=0x%x    GS=0x%x\n",
-        context->ss, context->ds, context->es, context->fs, context->gs);   
+    printf("  FS=0x%x    GS=0x%x\n",
+        context->fs, context->gs);   
         
     printf("  CS=0x%x\n",
         context->cs);  
-    printf("  EIP=0x%x\n", 
-        context->eip);
-    printf("  EFLAGS=0x%x\n", 
-        context->eflags);
+    printf("  RIP=0x%x\n", 
+        context->rip);
+    printf("  RFLAGS=0x%x\n", 
+        context->rflags);
     for (;;)
         asm volatile("hlt" : : );
 }

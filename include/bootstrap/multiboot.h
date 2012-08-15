@@ -94,7 +94,7 @@
 
 typedef unsigned short          multiboot_uint16_t;
 typedef unsigned int            multiboot_uint32_t;
-typedef unsigned long long      multiboot_uint64_t;
+typedef unsigned long           multiboot_uint64_t;
 
 struct multiboot_header
 {
@@ -217,6 +217,9 @@ struct multiboot_mod_list
     multiboot_uint32_t pad;
 };
 typedef struct multiboot_mod_list multiboot_module_t;
+
+multiboot_uint64_t
+multiboot_find_phys_max(multiboot_info_t* mbi);
 
 void
 multiboot_dump(multiboot_info_t* mbi);

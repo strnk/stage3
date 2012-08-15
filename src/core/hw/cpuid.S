@@ -8,16 +8,16 @@
 
 cpuid_supported:
     pushf
-    popl    %eax
-    movl    %eax, %ecx
-    xorl    $0x200000, %eax 
-    pushl   %eax
+    popq    %rax
+    movq    %rax, %rcx
+    xorq    $0x200000, %rax 
+    pushq   %rax
     popf
     pushf
-    popl    %eax
-    xor     %ecx, %eax
-    shr     $21, %eax
-    and     $1, %eax
-    pushl   %ecx
+    popq    %rax
+    xor     %rcx, %rax
+    shr     $21, %rax
+    and     $1, %rax
+    pushq   %rcx
     popf
     ret

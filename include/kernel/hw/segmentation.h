@@ -52,7 +52,8 @@ struct gdt_entry
     uint8_t dpl : 2;
     uint8_t present : 1;
     uint8_t size_hi : 4;        // Size[16..19]
-    uint8_t zero : 2;
+    uint8_t avl : 1;
+    uint8_t longmode : 1;
     uint8_t op_size : 1;
     uint8_t granularity : 1;
     uint8_t base_address_hi;    // Base[24..31]
@@ -62,6 +63,11 @@ struct gdt_entry
 struct gdt_register {
     uint16_t    size;
     uint32_t    base_address;
+} __pack;
+
+struct gdt64_register {
+    uint16_t    size;
+    uint64_t    base_address;
 } __pack;
 
 

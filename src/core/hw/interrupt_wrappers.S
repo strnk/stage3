@@ -35,74 +35,70 @@
     EXCEPTION_RESERVED_12, \
     EXCEPTION_RESERVED_13
     
-    // Align on a word boundary and fill with NOP (0x90)
-    .p2align 2, 0x90
+    // Align on a dword boundary and fill with NOP (0x90)
+    .p2align 4, 0x90
     __exception_wrapper_\exceptionNum:
     .type __exception_wrapper_\exceptionNum, @function
 
-        /** --STACK--
-        |----------|
-        |    SS    |  +16
-        |----------|
-        |  (ESP)   |  +12
-        |----------|
-        |  EFLAGS  |  +8
-        |----------|
-        |    CS    |  +4
-        |----------|
-        |   EIP    |  <-- ESP
-        |----------|
+        /**    --STACK--
+        |------------------|
+        |          |  SS   |  +32
+        |------------------|
+        |       (rsp)      |  +24
+        |------------------|
+        |     RFLAGS       |  +16
+        |------------------|
+        |          |   CS  |  +8
+        |------------------|
+        |       RIP        |  <-- rsp
+        |------------------|
         */
 
         /* Dummy error code */
-        pushl $0
+        pushq $0
+        movq  $0xcafebabe, %rax
         
         /* Context backup */
-        pushl %ebp
-        movl %esp, %ebp
+        pushq %rbp
+        movq %rsp, %rbp
 
-        pushl %edi
-        pushl %esi
-        pushl %eax
-        pushl %ebx
-        pushl %ecx
-        pushl %edx
-        pushw %ss
-        pushw %ds
-        pushw %es
+        pushq %rdi
+        pushq %rsi
+        pushq %rax
+        pushq %rbx
+        pushq %rcx
+        pushq %rdx
         pushw %fs
         pushw %gs
         
-        /* For DWORD alignment */
-        subl  $2,%esp
+        /* For QWORD alignment */
+        subq  $4,%rsp
 
         /* Handler call */
-        pushl %esp
-        pushl $\exceptionNum
-        leal  __exception_handlers, %edi
-        call  *\exceptionNum*4(%edi)
+        pushq %rsp
+        pushq $\exceptionNum
+        leaq  __exception_handlers, %rdi
+        call  *\exceptionNum*8(%rdi)
                 
         /* Point the stack to the saved context */
-        addl  $10, %esp
+        addq  $10, %rsp
         
         /* Context restore */
         popw  %gs
         popw  %fs
-        popw  %es
-        popw  %ds
-        popw  %ss
-        popl  %edx
-        popl  %ecx
-        popl  %ebx
-        popl  %eax
-        popl  %esi
-        popl  %edi
-        popl  %ebp
+        popq  %rdx
+        popq  %rcx
+        popq  %rbx
+        popq  %rax
+        popq  %rsi
+        popq  %rdi
+        popq  %rbp
 
+        movq  $0xdeadbeef, %rax
         /* Error code must not be onto the stack for proper IRET operation */
-        addl $4, %esp
+        addq $8, %rsp
         
-        iret
+        iretq
 .endr
 
 /* Generic wrapper for exception with error code */
@@ -115,73 +111,69 @@
     EXCEPTION_PAGE_FAULT, \
     EXCEPTION_ALIGNEMENT_CHECK
     
-    /* Align on a word boundary and fill with NOP (0x90) */
-    .p2align 2, 0x90
+    /* Align on a dword boundary and fill with NOP (0x90) */
+    .p2align 4, 0x90
     __exception_wrapper_\exceptionNum:
     .type __exception_wrapper_\exceptionNum,@function
 
-        /** --STACK--
-        |----------|
-        |    SS    |  +20
-        |----------|
-        |  (ESP)   |  +16
-        |----------|
-        |  EFLAGS  |  +12
-        |----------|
-        |    CS    |  +8
-        |----------|
-        |   EIP    |  +4
-        |----------|
-        |  ERROR#  | <-- ESP
-        |----------|
+        /**    --STACK--
+        |------------------|
+        |          |  SS   |  +40
+        |------------------|
+        |       (rsp)      |  +32
+        |------------------|
+        |     RFLAGS       |  +24
+        |------------------|
+        |          |   CS  |  +16
+        |------------------|
+        |       RIP        |  +8
+        |------------------|
+        |      ERROR       |  <-- rsp
+        |------------------|
         */
 
         /* Context backup */
-        pushl %ebp
-        movl %esp, %ebp
+        pushq %rbp
+        movq %rsp, %rbp
+        movq  $0xcafebabe, %rax
 
-        pushl %edi
-        pushl %esi
-        pushl %eax
-        pushl %ebx
-        pushl %ecx
-        pushl %edx
-        pushw %ss
-        pushw %ds
-        pushw %es
+        pushq %rdi
+        pushq %rsi
+        pushq %rax
+        pushq %rbx
+        pushq %rcx
+        pushq %rdx
         pushw %fs
         pushw %gs
         
         /* For DWORD alignment */
-        subl  $2,%esp
+        subq  $2,%rsp
  
         /* Handler call */
-        pushl %esp
-        pushl $\exceptionNum
-        leal  __exception_handlers, %edi
-        call  *\exceptionNum*4(%edi)
+        pushq %rsp
+        pushq $\exceptionNum
+        leaq  __exception_handlers, %rdi
+        call  *\exceptionNum*8(%rdi)
         
         /* Point the stack to the saved context */
-        addl  $10, %esp
+        addq  $10, %rsp
 
         /* Context restore */
         popw  %gs
         popw  %fs
-        popw  %es
-        popw  %ds
-        popw  %ss
-        popl  %edx
-        popl  %ecx
-        popl  %ebx
-        popl  %eax
-        popl  %esi
-        popl  %edi
-        popl  %ebp
+        popq  %rdx
+        popq  %rcx
+        popq  %rbx
+        popq  %rax
+        popq  %rsi
+        popq  %rdi
+        popq  %rbp
 
+        movq  $0xdeadbeef, %rax
         // Error code must not be onto the stack for proper IRET operation
-        addl $4, %esp
+        addq $8, %rsp
         
-        iret
+        iretq
 .endr
 
 
@@ -223,6 +215,6 @@ __exception_wrappers:
     EXCEPTION_RESERVED_11, \
     EXCEPTION_RESERVED_12, \
     EXCEPTION_RESERVED_13
-    .long (__exception_wrapper_\exceptionNum)
+    .quad (__exception_wrapper_\exceptionNum)
 .endr
 

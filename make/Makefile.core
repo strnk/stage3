@@ -3,7 +3,8 @@ CORE_SRC    := stage3.c multiboot.c tty.c
 
 CORE_HW     := $(CORE)/hw
 CORE_HW_SRC := interrupts.c interrupt_handlers.c interrupt_wrappers.S \
-                segmentation.c msr.c io.c apic.c pic.c cpu.c cpuid.S
+                segmentation.c msr.c io.c apic.c pic.c cpu.c cpuid.S \
+                pm_alloc.c
 
 CORE_TTY        := $(CORE)/tty
 CORE_TTY_SRC    := videomem.c

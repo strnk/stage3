@@ -5,10 +5,12 @@
 # include <kernel/types.h>
 #endif
 
-/* IDT entry type */
-#define IDTE_TYPE_TASK_GATE             0x05    
-#define IDTE_TYPE_INTERRUPT_GATE        0x06
-#define IDTE_TYPE_TRAP_GATE             0x07 
+/* IDT entry type */ 
+#define IDTE_TYPE_TSS_AVAILABLE         0x09
+#define IDTE_TYPE_TSS_BUSY              0x0B
+#define IDTE_TYPE_CALL_GATE             0x0C
+#define IDTE_TYPE_INTERRUPT_GATE        0x0E
+#define IDTE_TYPE_TRAP_GATE             0x0F 
  
 #define IDTE_SIZE_16BITS                0x00 
 #define IDTE_SIZE_32BITS                0x01  
@@ -67,28 +69,33 @@
 #ifndef ASM_SOURCE
 // Structure of an IDT entry
 struct idt_entry {
-    uint16_t    offset_lo;  // Offset[0..15]
-    uint16_t    selector;   // Code segment in GDT
-    uint8_t     reserved;   // Unused
-    uint8_t     type : 3;
-    uint8_t     size : 1;
-    uint8_t     zero : 1;
-    uint8_t     dpl : 2;
-    uint8_t     present : 1;
-    uint16_t    offset_hi;  // Offset[16..31]
-} __packalign(8);
+    uint16_t   offset_lo;  // Offset[0..15]
+    uint16_t   selector;   // Code segment in GDT
+    
+    int         ist : 3;
+    int         zero1 : 5;
+    
+    int         type : 4;
+    int         zero2 : 1;
+    int         dpl : 2;
+    int         present : 1;
+    
+    uint16_t   offset_mid;  // Offset[16..31]
+    uint32_t   offset_hi;   // Offset[32..63]
+    uint32_t   reserved;
+} __packalign(16);
 
 // Structure of the IDT register
 struct idt_register {
     uint16_t    size;
-    uint32_t    base_address;
+    uint64_t    base_address;
 } __pack;
 
 void
 idt_init(void);
 
 void
-idt_init_descriptor(uint8_t vector, uint16_t segment, uint8_t type, uint8_t size);
+idt_init_descriptor(uint8_t vector, uint16_t segment, uint8_t type);
 
 void
 idt_set_handler(uint8_t vector, virt_addr_t handler, uint8_t dpl);

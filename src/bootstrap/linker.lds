@@ -1,99 +1,72 @@
-OUTPUT_FORMAT("elf32-i386","elf32-i386","elf32-i386");
+OUTPUT_FORMAT("elf64-x86-64");
 
 /* The entry point is _start (defined in boot.S) */
 ENTRY(_start)
 
 /* The architecture is i386 */
-OUTPUT_ARCH("i386")
+OUTPUT_ARCH("x86-64")
 
 SECTIONS
 {
-    /* our kernel is loaded at 0x200000 */
-    . = 0x200000;
-    __b_load   = .;
-
+    . = PHYS_KBASE;
+    
     .multiboot :
+    {  
+        *(.multiboot)
+    }
+    
+    __b_load  = .;
+    __b_load_phys  = __b_load;
+    
+    .loader :
     {
-	    *(.multiboot);
-	    LONG(0);
+        __b_loader = .;
+        *(.loader32);
+        *(.loader64);
+        __e_loader = .;
     }
 
-
-    . = ALIGN(4096);
+    . += VIRT_KBASE;
+    
     __b_kernel = .;
-  
-    .text ALIGN(4096) :
-    {   
+    __b_kernel_phys  = __b_kernel - VIRT_KBASE;
+    
+    .text ALIGN(0x1000) : AT(ADDR(.text) - VIRT_KBASE)
+    {
+        *(.text32)
         *(.text)
-        _etext = .;
-        PROVIDE(etext = .);
     }
 
-    .data . :
-    {   *(.data) 
-        _edata = .;
-        PROVIDE(edata = .);
+    .data ALIGN(0x1000) : AT(ADDR(.data) - VIRT_KBASE)
+    {   
+        *(.data) 
     }
 
-    .rodata . :
-    {   *(.rodata)
-        _erodata = .;
-        PROVIDE(erodata = .);
+    .rodata ALIGN(0x1000) : AT(ADDR(.rodata) - VIRT_KBASE)
+    {   
+        *(.rodata)
     }
-    __e_load = .;
+    
+    __e_load  = .;
+    __e_load_phys = __e_load - VIRT_KBASE;
 
-    .bss SIZEOF(.rodata) + ADDR(.rodata) :
+    .bss : AT(ADDR(.bss) - VIRT_KBASE)
     {   
         *(.bss)
         *(COMMON)
-        _ebss = .;
-        _end = .;
-        PROVIDE(ebss = .);
-        PROVIDE(end = .);
     }
     
-    
-    .stab          0 : { *(.stab) }
-    .stabstr       0 : { *(.stabstr) }
-    .stab.excl     0 : { *(.stab.excl) }
-    .stab.exclstr  0 : { *(.stab.exclstr) }
-    .stab.index    0 : { *(.stab.index) }
-    .stab.indexstr 0 : { *(.stab.indexstr) }
-    .comment       0 : { *(.comment) }
-    /* DWARF debug sections.
-    Symbols in the DWARF debugging sections are relative to the beginning
-    of the section so we begin them at 0.  */
-    /* DWARF 1 */
-    .debug          0 : { *(.debug) }
-    .line           0 : { *(.line) }
-    /* GNU DWARF 1 extensions */
-    .debug_srcinfo  0 : { *(.debug_srcinfo) }
-    .debug_sfnames  0 : { *(.debug_sfnames) }
-    /* DWARF 1.1 and DWARF 2 */
-    .debug_aranges  0 : { *(.debug_aranges) }
-    .debug_pubnames 0 : { *(.debug_pubnames) }
-    /* DWARF 2 */
-    .debug_info     0 : { *(.debug_info .gnu.linkonce.wi.*) }
-    .debug_abbrev   0 : { *(.debug_abbrev) }
-    .debug_line     0 : { *(.debug_line) }
-    .debug_frame    0 : { *(.debug_frame) }
-    .debug_str      0 : { *(.debug_str) }
-    .debug_loc      0 : { *(.debug_loc) }
-    .debug_macinfo  0 : { *(.debug_macinfo) }
-    /* SGI/MIPS DWARF 2 extensions */
-    .debug_weaknames 0 : { *(.debug_weaknames) }
-    .debug_funcnames 0 : { *(.debug_funcnames) }
-    .debug_typenames 0 : { *(.debug_typenames) }
-    .debug_varnames  0 : { *(.debug_varnames) } 
+    __e_kernel  = .;
+    __e_kernel_phys = __e_kernel - VIRT_KBASE;
 
-    __e_kernel = .;
-
-    /DISCARD/ :{
+    /DISCARD/ : {
+            *(.debug_*)
             *(.note*)
             *(.indent)
             *(.comment)
             *(.stab)
             *(.stabstr)
+            *(.eh_frame)
     }
 }
 
