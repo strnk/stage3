@@ -3,7 +3,7 @@
 # grub-firmware-qemu
 
 SECTOR_SIZE=1024
-SECTOR_COUNT=20480
+SECTOR_COUNT=2048
 IMAGE_FILE="$1"
 BASE_DIR=$(dirname "$0")
 
@@ -89,8 +89,7 @@ checkError() {
 
 # Zero-fill the image file
 echo -n "Initializing $IMAGE_FILE ... "
-bximage -hd -mode=flat -size=$(($SECTOR_COUNT/1024)) -q "$IMAGE_FILE"
-#dd if=/dev/zero of="$IMAGE_FILE" bs=$SECTOR_SIZE count=$SECTOR_COUNT > /dev/null 2>/dev/null
+dd if=/dev/zero of="$IMAGE_FILE" bs=$SECTOR_SIZE count=$SECTOR_COUNT > /dev/null 2>/dev/null
 checkError "ok : $(du -h --apparent-size $IMAGE_FILE | cut -f1)"
 echo
 

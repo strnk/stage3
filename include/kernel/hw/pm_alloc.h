@@ -6,7 +6,7 @@
 #define PM_PAGE_SIZE    4096
 #define PM_PAGE_BITS    12
 
-#define PM_PAGE_ALIGN_INF(phys_addr) (((uint32_t)(phys_addr) >> PM_PAGE_BITS) << PM_PAGE_BITS)
+#define PM_PAGE_ALIGN_INF(phys_addr) (((uint64_t)(phys_addr) >> PM_PAGE_BITS) << PM_PAGE_BITS)
 #define PM_PAGE_ALIGN_SUP(phys_addr) (PM_PAGE_ALIGN_INF(phys_addr) + PM_PAGE_SIZE)
 
 #define PM_DATA_BEGIN_ADDR    PM_PAGE_ALIGN_SUP(& __e_kernel)
@@ -30,7 +30,7 @@ int
 pm_alloc_mark_reserved(phys_addr_t lower, phys_addr_t upper);
 
 phys_addr_t
-pm_alloc_getpage(uint32_t size);
+pm_alloc_getpage();
 
 int
 pm_alloc_free(phys_addr_t page);

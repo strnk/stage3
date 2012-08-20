@@ -62,14 +62,14 @@ vsnprintf(char *str, size_t len, const char *format, va_list ap)
                             
                             case 'x':
                             {
-                                unsigned int hexa = va_arg(ap,int);
-                                unsigned int nb;
+                                unsigned long int hexa = va_arg(ap, long int);
+                                unsigned long int nb;
                                 int i;
                                 
                                 for (i=0 ; i < 16 ; i++)
                                 {
-                                    nb = (unsigned int)(hexa << (i*4));
-                                    nb = (nb >> 28) & 0xf;
+                                    nb = (unsigned long int)(hexa << (i*4));
+                                    nb = (nb >> 60) & 0xf;
 
                                     if (nb < 10)
                                         PUTCHAR('0'+nb);
@@ -162,6 +162,26 @@ vsnprintf(char *str, size_t len, const char *format, va_list ap)
                         if (! had_nonzero)
                             PUTCHAR('0');
                             
+                        break;
+                    }
+                    
+                    case 'p':
+                    {
+                        unsigned long int hexa = va_arg(ap, long int);
+                        unsigned long int nb;
+                        int i;
+                        
+                        for (i=0 ; i < 16 ; i++)
+                        {
+                            nb = (unsigned long int)(hexa << (i*4));
+                            nb = (nb >> 60) & 0xf;
+
+                            if (nb < 10)
+                                PUTCHAR('0'+nb);
+                            else
+                                PUTCHAR('a'+(nb-10));
+                        }
+                        
                         break;
                     }
 

@@ -15,6 +15,7 @@ LDFLAGS     := --defsym PHYS_KBASE=$(PHYS_KBASE) \
 KERNEL      := stage3
 MAP         := stage3.map
 BOOT_IMAGE  := boot
+BOOT_ISO    := boot.iso
 
 # Directories
 ROOT        := $(shell pwd)
@@ -36,8 +37,8 @@ CC_INCLUDES := $(addprefix -I, $(INCLUDES))
 # Main target
 all: $(BOOT_IMAGE) $(MAP)
 
-runb: $(BOOT_IMAGE)
-	qemu-system-x86_64 -hda $(BOOT_IMAGE) -net none -m 4 -no-reboot
+runb: $(BOOT_ISO)
+	bochs -f ./extra/bochsrc
     
 rund: $(KERNEL)
 	qemu-system-x86_64 -kernel $(KERNEL) -net none -m 4 -no-reboot -no-shutdown -s -monitor stdio
@@ -53,6 +54,11 @@ else
 	@echo [GEN] $(subst $(PWD)/,,$@) from $(subst $(PWD)/,,$<)
 	@./extra/mount.sh $@ $<
 endif
+
+$(BOOT_ISO): $(KERNEL)
+	@echo [GEN] $(subst $(PWD)/,,$@) from $(subst $(PWD)/,,$<)
+	@./extra/mkiso.sh $@ $<
+    
 
 $(KERNEL): $(OBJECTS) $(SRC)/bootstrap/linker.lds
 	@echo [LD] $(subst $(PWD)/,,$@)
@@ -84,4 +90,5 @@ distclean:
 	@find . -name '*~' -print | xargs rm -f
 	@echo [RM] \*.o
 	@find . -name '*.o' -print | xargs rm -f
-	rm $(BOOT_IMAGE)
+	@echo [RM] $(BOOT_IMAGE) $(BOOT_ISO) $(KERNEL) $(MAP) 
+	@rm -f $(BOOT_IMAGE) $(BOOT_ISO) $(KERNEL) $(MAP) 

@@ -1,4 +1,5 @@
 #include <kernel/hw/interrupts.h>
+#include <kernel/hw/exceptions.h>
 
 .file "interrupt_wrappers.S"
 
@@ -56,7 +57,6 @@
 
         /* Dummy error code */
         pushq $0
-        movq  $0xcafebabe, %rax
         
         /* Context backup */
         pushq %rbp
@@ -71,17 +71,17 @@
         pushw %fs
         pushw %gs
         
-        /* For QWORD alignment */
-        subq  $4,%rsp
-
+        subq $4, %rsp
+        
         /* Handler call */
-        pushq %rsp
-        pushq $\exceptionNum
-        leaq  __exception_handlers, %rdi
-        call  *\exceptionNum*8(%rdi)
+        movq %rsp, %rsi
+        movq $\exceptionNum, %rdi
+        
+        leaq  __exception_handlers, %r8
+        call  *\exceptionNum*8(%r8)
                 
         /* Point the stack to the saved context */
-        addq  $10, %rsp
+        addq  $4, %rsp
         
         /* Context restore */
         popw  %gs
@@ -94,7 +94,6 @@
         popq  %rdi
         popq  %rbp
 
-        movq  $0xdeadbeef, %rax
         /* Error code must not be onto the stack for proper IRET operation */
         addq $8, %rsp
         
@@ -135,7 +134,6 @@
         /* Context backup */
         pushq %rbp
         movq %rsp, %rbp
-        movq  $0xcafebabe, %rax
 
         pushq %rdi
         pushq %rsi
@@ -147,16 +145,17 @@
         pushw %gs
         
         /* For DWORD alignment */
-        subq  $2,%rsp
+        subq $4, %rsp
  
         /* Handler call */
-        pushq %rsp
-        pushq $\exceptionNum
-        leaq  __exception_handlers, %rdi
-        call  *\exceptionNum*8(%rdi)
+        movq %rsp, %rsi
+        movq $\exceptionNum, %rdi
+        
+        leaq  __exception_handlers, %r8
+        call  *\exceptionNum*8(%r8)
         
         /* Point the stack to the saved context */
-        addq  $10, %rsp
+        addq  $4, %rsp
 
         /* Context restore */
         popw  %gs
@@ -168,8 +167,7 @@
         popq  %rsi
         popq  %rdi
         popq  %rbp
-
-        movq  $0xdeadbeef, %rax
+        
         // Error code must not be onto the stack for proper IRET operation
         addq $8, %rsp
         

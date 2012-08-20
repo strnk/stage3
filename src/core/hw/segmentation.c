@@ -38,7 +38,7 @@
         .present = GDTE_PRESENT,                                \
         .avl = 0,                                               \
         .longmode = 1,                                          \
-        .op_size = GDTE_SIZE_32_BITS,                           \
+        .op_size = 0,                                           \
         .granularity = 0                                        \
     })
     

@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <inttypes.h>
+#include <kernel/types.h>
 
 #define APIC_REG_ID         0x0020
 #define APIC_REG_VERSION    0x0030
@@ -22,7 +23,7 @@
 #define APIC_REG_LVT_ERR    0x0370
 
 void 
-init_apic(uint32_t relocation);
+init_apic(phys_addr_t relocation);
 
 uint32_t 
 read_lapic_reg(uint16_t reg);

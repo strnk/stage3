@@ -67,6 +67,11 @@ _start:
     0x107000 - PD 1ff.1fe
     0x108000 - PT 1ff.1fe.1   0xFFFF 80200000 - 0xFFFF 803FFFFF
     0x109000 - PT 1ff.1fe.2   0xFFFF 80400000 - 0xFFFF 805FFFFF
+    0x10A000 - PT 1ff.1fe.3   0xFFFF 80600000 - 0xFFFF 807FFFFF
+    0x10B000 - PT 1ff.1fe.4   0xFFFF 80800000 - 0xFFFF 809FFFFF
+    0x10C000 - PT 1ff.1fe.5   0xFFFF 80A00000 - 0xFFFF 80BFFFFF
+    0x10D000 - PT 1ff.1fe.6   0xFFFF 80C00000 - 0xFFFF 80DFFFFF
+    0x10E000 - PT 1ff.1fe.7   0xFFFF 80E00000 - 0xFFFF 80FFFFFF
  */
 setupTempPML4:
     movl    $0x101000, %edi    
@@ -96,6 +101,11 @@ setupTempPDT:
     movl    $0x107000, %edi
     movl    $0x108003, 8(%edi)    // PD1ff.1fe[1] -> PT1ff.1fe.1, RW
     movl    $0x109003, 16(%edi)   // PD1ff.1fe[2] -> PT1ff.1fe.2, RW
+    movl    $0x10A003, 24(%edi)   // PD1ff.1fe[3] -> PT1ff.1fe.3, RW
+    movl    $0x10B003, 32(%edi)   // PD1ff.1fe[4] -> PT1ff.1fe.4, RW
+    movl    $0x10C003, 40(%edi)   // PD1ff.1fe[5] -> PT1ff.1fe.5, RW
+    movl    $0x10D003, 48(%edi)   // PD1ff.1fe[6] -> PT1ff.1fe.6, RW
+    movl    $0x10E003, 56(%edi)   // PD1ff.1fe[7] -> PT1ff.1fe.7, RW
     jmp     setupIdentityMap
     
 setupTempPT:
@@ -124,6 +134,26 @@ setupIdentityMap:
     
     movl    $0x109000, %edi
     movl    $0x00400000, %ebx
+    call    setupTempPT    
+    
+    movl    $0x10A000, %edi
+    movl    $0x00600000, %ebx
+    call    setupTempPT   
+     
+    movl    $0x10B000, %edi
+    movl    $0x00800000, %ebx
+    call    setupTempPT
+        
+    movl    $0x10C000, %edi
+    movl    $0x00A00000, %ebx
+    call    setupTempPT    
+    
+    movl    $0x10D000, %edi
+    movl    $0x00C00000, %ebx
+    call    setupTempPT   
+     
+    movl    $0x10E000, %edi
+    movl    $0x00E00000, %ebx
     call    setupTempPT    
     
 enablePAE:
@@ -171,7 +201,7 @@ multiboot_entry:
     popq    %rdi    // saved multiboot data ptr -- 2nd main() arg
     
     /* Initialize the stack pointer. */
-    movq    $(0x10A000 + STACK_SIZE), %rsp
+    movq    $(0x110000 + STACK_SIZE), %rsp
 
     // clear EFLAG
     pushq   $0
@@ -181,9 +211,6 @@ multiboot_entry:
     call    *%rax
 
     /* Halt. */
-    pushq   $halt_message
-    call    EXT_C(printf)
-
     loop:   hlt
     jmp     loop
 
@@ -214,7 +241,4 @@ TempGDT:
 TempGDT.ptr:
     .word . - TempGDT - 1
     .quad TempGDT
-    
-halt_message:
-    .asciz  "Halted."
     

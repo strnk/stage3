@@ -7,6 +7,8 @@
 #include <kernel/hw/interrupt_handlers.h>
 #include <kernel/hw/segmentation.h>
 #include <kernel/hw/pm_alloc.h>
+#include <kernel/hw/paging.h>
+#include <kernel/die.h>
 
 #include <stdio.h>
 
@@ -16,12 +18,20 @@ uint64_t memsize;
 
 void main(unsigned long magic, multiboot_info_t* mbi)
 {
-    /** Setup the flat segmentation memory model */
+    /** 
+     ** Setup the flat segmentation memory model 
+     **/
     gdt_init();
+    
+    /**
+     ** Initialize exceptions vectors
+     **/
     idt_init();
     interrupt_init();
     
-    /** Console display initialization */
+    /** 
+     ** Console display initialization 
+     **/
     tty_set_handler(&TTY_VIDEOMEM);
     puts("STAGE3 operating system");
     
@@ -32,53 +42,72 @@ void main(unsigned long magic, multiboot_info_t* mbi)
         return;
     }
     
-    puts("Data size static test:\n");
-    printf("uint64_t: %ld\n", sizeof(uint64_t));
-    printf("uint32_t: %ld\n", sizeof(uint32_t));
-    printf("uint16_t: %ld\n", sizeof(uint16_t));
-    printf("uint8_t: %ld\n", sizeof(uint8_t));
-    printf("idt_entry: %ld\n", sizeof(struct idt_entry));
+    /** 
+     ** Physical memory allocator initialization
+     **/
+    pm_alloc_init(multiboot_find_phys_max(mbi));
     
-
-    //multiboot_dump(mbi);
-    
-    /** Physical memory allocator initialization */
-    //pm_alloc_init(multiboot_find_phys_max(mbi));
-    
-    /*multiboot_memory_map_t *mmap;
+    // Reserved memory pages from multiboot data
+    multiboot_memory_map_t *mmap;
     for (mmap = (multiboot_memory_map_t*)(uint64_t)mbi->mmap_addr;
         (uint64_t)mmap < mbi->mmap_addr + mbi->mmap_length;
         mmap++)
     {
         if (mmap->type != MULTIBOOT_MEMORY_AVAILABLE)
-            pm_alloc_mark_reserved(mmap->addr, mmap->addr+mmap->len);
-    }*/
+        {
+            printf("%lx -- %lx\n", mmap->addr, mmap->addr+mmap->len-1);
+            pm_alloc_mark_reserved(mmap->addr, mmap->addr+mmap->len-1);
+        }
+    }
     
-    //pm_state_dump();
+    // Bootloader used pages
+    pm_alloc_mark_reserved(0x1000, 0x120000);
+    pm_state_dump();
     
     
-    /** Interrupt initialization */
-    //idt_init();
-    //interrupt_init();
+    /**
+     ** Paging initialization
+     **/
+    paging_init();
     
-    //asm volatile("movl 0xdeadbeef, %%eax" : : : "eax");
-    //asm volatile("int $3" : : );
+    /**
+     ** Final page mapping
+     **/
+    {
+        /* Remap the kernel stack */
+        phys_addr_t rsp, rbp;
+        asm volatile("movq %%rsp, %0; mov %%rbp, %1" : "=r"(rsp), "=r"(rbp) : : "memory");
+        
+        paging_vmap((phys_addr_t)0x110000, (virt_addr_t)0xfffffffe80000000, 4, 
+            PAGING_PAGE_SUPERVISOR);
+            
+        rsp = (rsp-0x110000)+0xfffffffe80000000;
+        rbp = (rbp-0x110000)+0xfffffffe80000000;
+        
+        asm volatile("movq %0, %%rsp; movq %1, %%rbp" : : "m"(rsp), "m"(rbp) : "memory");
+        
+        /* Unmap identity paged low-memory after 1MB */
+        paging_vunmap((virt_addr_t)0x100000, 256);
+        paging_vunmap((virt_addr_t)0x200000, 512);
+    }
     
-    printf("  CPUID is %ssupported. (%d)\n", (cpuid_supported() != 0)?"":"not ", cpuid_supported());
+    
+    printf("CPUID is %ssupported.\n", (cpuid_supported() != 0)?"":"not ");
     
     /** Interrupts initialization */
-    //init_apic(0);
-    /*
+    init_apic(0);
     {
         
-        printf("  APIC: \n    ` Base address: 0x%x\n", (uint32_t)APIC_BASE_ADDRESS);
+        printf("  APIC: \n    ` Base address: 0x%lx\n", (uintptr_t)APIC_BASE_ADDRESS);
         printf("    ` Spurious register: 0x%x\n", read_lapic_reg(APIC_REG_SPURIOUS));
         printf("    ` Version: 0x%x\n", read_lapic_reg(APIC_REG_VERSION));
         printf("    ` ID: 0x%x\n", read_lapic_reg(APIC_REG_ID));
         printf("    ` DFR: 0x%x\n", read_lapic_reg(APIC_REG_DFR));
     }
-    */
     
     /** Print end message */
     puts(COLOR(ISO6429_RED) "Halting.");
+    
+    for (;;)
+        asm volatile("hlt" : : : "memory");
 }

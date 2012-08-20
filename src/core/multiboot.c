@@ -2,7 +2,6 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-
 uint64_t
 multiboot_find_phys_max(multiboot_info_t* mbi)
 {
@@ -10,8 +9,8 @@ multiboot_find_phys_max(multiboot_info_t* mbi)
     uint64_t ram_size = (mbi->mem_lower + mbi->mem_upper) << 10;
     uint64_t track = 0;
     
-    for (mmap = (multiboot_memory_map_t*)(uint64_t)mbi->mmap_addr;
-        (uint64_t)mmap < mbi->mmap_addr + mbi->mmap_length;
+    for (mmap = (multiboot_memory_map_t*)(uintptr_t)mbi->mmap_addr;
+        (uintptr_t)mmap < mbi->mmap_addr + mbi->mmap_length;
         mmap++)
     {
         if (mmap->addr + mmap->len > ram_size && mmap->addr != track)
@@ -72,16 +71,13 @@ multiboot_dump(multiboot_info_t* mbi)
         
         printf("  Memory map: addr=0x%x, length=0x%x\n", 
             mbi->mmap_addr, mbi->mmap_length);
-            
-        for (mmap = (multiboot_memory_map_t*)(uint64_t)mbi->mmap_addr;
-            (uint64_t)mmap < mbi->mmap_addr + mbi->mmap_length;
+
+        for (mmap = (multiboot_memory_map_t*)(uintptr_t)mbi->mmap_addr;
+            (uintptr_t)mmap < mbi->mmap_addr + mbi->mmap_length;
             mmap++)
         {
-            printf("    ` 0x%x%x - 0x%x%x [%s]\n",
-                (unsigned int)(mmap->addr >> 32), 
-                (unsigned int)(mmap->addr & 0xFFFFFFFF),
-                (unsigned int)(mmap->len >> 32), 
-                (unsigned int)(mmap->len & 0xFFFFFFFF),
+            printf("    ` 0x%lx - 0x%lx [%s]\n",
+                mmap->addr, mmap->addr + mmap->len,
                 ((mmap->type == MULTIBOOT_MEMORY_AVAILABLE)
                     ?"available":"reserved")
             );
