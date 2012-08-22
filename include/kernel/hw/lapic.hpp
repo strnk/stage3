@@ -1,5 +1,5 @@
-#ifndef _HW_APIC_H_
-#define _HW_APIC_H_
+#ifndef _HW_LAPIC_H_
+#define _HW_LAPIC_H_
 
 #include <stdlib.h>
 #include <inttypes.h>
@@ -35,4 +35,4 @@ write_lapic_reg(uint16_t address, uint32_t value);
 extern uint32_t* APIC_BASE_ADDRESS;
 #endif 
 
-#endif // _HW_APIC_H_
+#endif // _HW_LAPIC_H_

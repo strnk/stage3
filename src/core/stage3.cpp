@@ -1,33 +1,37 @@
+extern "C" {
 #include <multiboot.h>
 #include <kernel/tty.h>
 #include <kernel/tty/videomem.h>
 #include <kernel/hw/msr.h>
-#include <kernel/hw/apic.h>
-#include <kernel/hw/interrupts.h>
-#include <kernel/hw/interrupt_handlers.h>
-#include <kernel/hw/segmentation.h>
-#include <kernel/hw/pm_alloc.h>
-#include <kernel/hw/paging.h>
-#include <kernel/die.h>
+#include <kernel/hw/ebda.h>
+#include <kernel/hw/ioapic.h>
 
-#include <stdio.h>
+}
 
-extern int videomem_cursor_attr;
+#include <kernel/hw/segmentation.hpp>
+#include <kernel/hw/interrupts.hpp>
+#include <kernel/hw/exceptions.hpp>
+#include <kernel/hw/pm_alloc.hpp>
+#include <kernel/hw/paging.hpp>
+#include <kernel/hw/lapic.hpp>
+#include <kernel/die.hpp>
 
-uint64_t memsize;
+#include <cstdio>
+
+using namespace Stage3;
 
 void main(unsigned long magic, multiboot_info_t* mbi)
 {
     /** 
      ** Setup the flat segmentation memory model 
      **/
-    gdt_init();
+    GDT::init();
     
     /**
      ** Initialize exceptions vectors
      **/
-    idt_init();
-    interrupt_init();
+    Interrupts::IDT::init();
+    Interrupts::init();
     
     /** 
      ** Console display initialization 
@@ -45,7 +49,7 @@ void main(unsigned long magic, multiboot_info_t* mbi)
     /** 
      ** Physical memory allocator initialization
      **/
-    pm_alloc_init(multiboot_find_phys_max(mbi));
+    PhysicalMemoryAllocator::init(multiboot_find_phys_max(mbi));
     
     // Reserved memory pages from multiboot data
     multiboot_memory_map_t *mmap;
@@ -56,19 +60,20 @@ void main(unsigned long magic, multiboot_info_t* mbi)
         if (mmap->type != MULTIBOOT_MEMORY_AVAILABLE)
         {
             printf("%lx -- %lx\n", mmap->addr, mmap->addr+mmap->len-1);
-            pm_alloc_mark_reserved(mmap->addr, mmap->addr+mmap->len-1);
+            PhysicalMemoryAllocator::mark_reserved(mmap->addr, 
+                mmap->addr+mmap->len-1);
         }
     }
     
     // Bootloader used pages
-    pm_alloc_mark_reserved(0x1000, 0x120000);
-    pm_state_dump();
+    PhysicalMemoryAllocator::mark_reserved(0x1000, 0x120000);
+    PhysicalMemoryAllocator::state_dump();
     
     
     /**
      ** Paging initialization
      **/
-    paging_init();
+    Paging::init();
     
     /**
      ** Final page mapping
@@ -76,9 +81,10 @@ void main(unsigned long magic, multiboot_info_t* mbi)
     {
         /* Remap the kernel stack */
         phys_addr_t rsp, rbp;
-        asm volatile("movq %%rsp, %0; mov %%rbp, %1" : "=r"(rsp), "=r"(rbp) : : "memory");
+        asm volatile("movq %%rsp, %0; mov %%rbp, %1" 
+            : "=r"(rsp), "=r"(rbp) : : "memory");
         
-        paging_vmap((phys_addr_t)0x110000, (virt_addr_t)0xfffffffe80000000, 4, 
+        Paging::vmap((phys_addr_t)0x110000, (virt_addr_t)0xfffffffe80000000, 4, 
             PAGING_PAGE_SUPERVISOR);
             
         rsp = (rsp-0x110000)+0xfffffffe80000000;
@@ -87,23 +93,28 @@ void main(unsigned long magic, multiboot_info_t* mbi)
         asm volatile("movq %0, %%rsp; movq %1, %%rbp" : : "m"(rsp), "m"(rbp) : "memory");
         
         /* Unmap identity paged low-memory after 1MB */
-        paging_vunmap((virt_addr_t)0x100000, 256);
-        paging_vunmap((virt_addr_t)0x200000, 512);
+        Paging::vunmap((virt_addr_t)0x100000, 256);
+        Paging::vunmap((virt_addr_t)0x200000, 512);
     }
     
     
     printf("CPUID is %ssupported.\n", (cpuid_supported() != 0)?"":"not ");
     
+    /** EBDA initialization */
+    ebda_init();
+    
     /** Interrupts initialization */
-    init_apic(0);
+    /*init_apic(0);
     {
         
-        printf("  APIC: \n    ` Base address: 0x%lx\n", (uintptr_t)APIC_BASE_ADDRESS);
-        printf("    ` Spurious register: 0x%x\n", read_lapic_reg(APIC_REG_SPURIOUS));
+        printf("  APIC: \n    ` Base address: 0x%lx\n",
+            (uintptr_t)APIC_BASE_ADDRESS);
+        printf("    ` Spurious register: 0x%x\n", 
+            read_lapic_reg(APIC_REG_SPURIOUS));
         printf("    ` Version: 0x%x\n", read_lapic_reg(APIC_REG_VERSION));
         printf("    ` ID: 0x%x\n", read_lapic_reg(APIC_REG_ID));
         printf("    ` DFR: 0x%x\n", read_lapic_reg(APIC_REG_DFR));
-    }
+    }*/
     
     /** Print end message */
     puts(COLOR(ISO6429_RED) "Halting.");

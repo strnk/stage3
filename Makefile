@@ -7,6 +7,15 @@ CFLAGS      := -g -m64 -Wall \
                -nostdlib -nostdinc -ffreestanding \
                -DSTAGE3 -D__PHYS_KBASE=$(PHYS_KBASE) \
                -D__VIRT_KBASE=$(VIRT_KBASE)
+               
+CXX         := g++
+CXXFLAGS    := -g -m64 -Wall \
+               -mno-red-zone -mcmodel=large \
+               -nostdlib -nostdinc -ffreestanding \
+               -DSTAGE3 -D__PHYS_KBASE=$(PHYS_KBASE) \
+               -D__VIRT_KBASE=$(VIRT_KBASE) \
+               -fno-rtti -fno-exceptions -std=c++0x
+
 LD          := ld
 LDFLAGS     := --defsym PHYS_KBASE=$(PHYS_KBASE) \
                 --defsym VIRT_KBASE=$(VIRT_KBASE) \
@@ -24,14 +33,14 @@ INCLUDE     := $(ROOT)/include
 
  
 # File list
-INCLUDES    := $(INCLUDE) $(INCLUDE)/libc $(INCLUDE)/bootstrap 
+INCLUDES    := $(INCLUDE) $(INCLUDE)/libc $(INCLUDE)/libc/c++ $(INCLUDE)/bootstrap 
 SOURCES     := 
 
 include make/Makefile.bootstrap
 include make/Makefile.core
 include make/Makefile.libc
 
-OBJECTS     := $(patsubst %.S,%.o, $(SOURCES:.c=.o))
+OBJECTS     := $(patsubst %.cpp,%.o, $(patsubst %.S,%.o, $(SOURCES:.c=.o)))
 CC_INCLUDES := $(addprefix -I, $(INCLUDES))
 
 # Main target
@@ -68,6 +77,11 @@ $(MAP): $(KERNEL)
 	@echo [MAP] $(subst $(PWD)/,,$@)
 	@nm -C $< | cut -d ' ' -f 1,3 | sort > $@
 
+# Create objects from C++ source code
+%.o: %.cpp
+	@echo [CXX] $(subst $(PWD)/,,$@)
+	@$(CXX) $(CC_INCLUDES) -c $< $(CXXFLAGS) -o $@
+    
 # Create objects from C source code
 %.o: %.c
 	@echo [CC] $(subst $(PWD)/,,$@)

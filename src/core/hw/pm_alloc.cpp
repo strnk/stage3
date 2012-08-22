@@ -1,46 +1,43 @@
-#include <kernel/hw/pm_alloc.h>
-#include <kernel/die.h>
+#include <kernel/hw/pm_alloc.hpp>
+#include <kernel/die.hpp>
 #include <stdio.h>
 
 extern unsigned char __e_kernel;
 extern unsigned char __b_kernel;
 
-struct pm_page_descr* pm_free_pages;
-struct pm_page_descr* pm_used_pages;
+using namespace Stage3::PhysicalMemoryAllocator;
 
-uint32_t pm_total_pages_count;
-uint32_t pm_used_pages_count;
+namespace Stage3 {
+namespace PhysicalMemoryAllocator {
+    struct page_descr* pm_free_pages;
+    struct page_descr* pm_used_pages;
+
+    uint32_t pm_total_pages_count;
+    uint32_t pm_used_pages_count;
+}
+}
 
 
 void
-pm_state_dump()
+Stage3::PhysicalMemoryAllocator::state_dump()
 {
     printf("PM allocator: using %d/%d pages\n", 
         pm_used_pages_count,
         pm_total_pages_count);
 }
 
-void
-pm_descr_dump(struct pm_page_descr* pmd)
-{
-    printf("Addr: 0x%lx\n", pmd->addr);
-    printf("Ref#: %d\n", pmd->ref_count);
-    printf("Next: 0x%p\n", pmd->next);
-    printf("Prev: 0x%p\n", pmd->prev);
-}
-
 int
-pm_alloc_init(uint64_t ram_size)
+Stage3::PhysicalMemoryAllocator::init(uint64_t ram_size)
 {    
     uint64_t page_count = ram_size >> PM_PAGE_BITS;
     uint64_t kernel_begin = PM_PAGE_ALIGN_INF(& __b_kernel);
-    uint64_t kernel_end = PM_PAGE_ALIGN_SUP(PM_DATA_BEGIN_ADDR + page_count * sizeof(struct pm_page_descr));
-    int i;
-    struct pm_page_descr* page;
+    uint64_t kernel_end = PM_PAGE_ALIGN_SUP(PM_DATA_BEGIN_ADDR + page_count * sizeof(struct page_descr));
+    unsigned int i;
+    struct page_descr* page;
     
     
     /** Mark pages 1-N as free */
-    for (i = 1, page = ((struct pm_page_descr*)PM_DATA_BEGIN_ADDR)+1; 
+    for (i = 1, page = ((struct page_descr*)PM_DATA_BEGIN_ADDR)+1; 
         i < page_count; 
         i++, page++)
     {
@@ -50,12 +47,12 @@ pm_alloc_init(uint64_t ram_size)
         page->ref_count = 0;
     }
     
-    pm_free_pages =  ((struct pm_page_descr*)PM_DATA_BEGIN_ADDR)+1;
+    pm_free_pages =  ((struct page_descr*)PM_DATA_BEGIN_ADDR)+1;
     pm_free_pages->prev = page-1;
     pm_free_pages->prev->next = pm_free_pages;
     
     /** Mark page 0 (reserved) as used */
-    pm_used_pages = (struct pm_page_descr*)PM_DATA_BEGIN_ADDR;
+    pm_used_pages = (struct page_descr*)PM_DATA_BEGIN_ADDR;
     pm_used_pages->prev = pm_used_pages;
     pm_used_pages->next = pm_used_pages;
     pm_used_pages->addr = 0;
@@ -64,17 +61,17 @@ pm_alloc_init(uint64_t ram_size)
     pm_total_pages_count = page_count;
     pm_used_pages_count = 1;
     
-    pm_alloc_mark_reserved(kernel_begin, kernel_end);
+    mark_reserved(kernel_begin, kernel_end);
     
     return 0;
 }
 
 int
-pm_alloc_mark_reserved(phys_addr_t lower, phys_addr_t upper)
+Stage3::PhysicalMemoryAllocator::mark_reserved(phys_addr_t lower, phys_addr_t upper)
 {
     int i;
-    struct pm_page_descr* page;
-    struct pm_page_descr* prev;
+    struct page_descr* page;
+    struct page_descr* prev;
     
     lower = PM_PAGE_ALIGN_INF(lower);
     upper = PM_PAGE_ALIGN_SUP(upper);
@@ -102,9 +99,9 @@ pm_alloc_mark_reserved(phys_addr_t lower, phys_addr_t upper)
 }
 
 phys_addr_t
-pm_alloc_getpage()
+Stage3::PhysicalMemoryAllocator::getpage()
 {
-    struct pm_page_descr* rpage = pm_free_pages;
+    struct page_descr* rpage = pm_free_pages;
     
     if (pm_free_pages == NULL)
         die("Out of memory");
@@ -131,10 +128,10 @@ pm_alloc_getpage()
 }
 
 int
-pm_alloc_free(phys_addr_t addr)
+Stage3::PhysicalMemoryAllocator::free(phys_addr_t addr)
 {    
     int i;
-    struct pm_page_descr* page;
+    struct page_descr* page;
     addr = PM_PAGE_ALIGN_INF(addr);
     
     for (i = 0, page = pm_used_pages; !i || page != pm_used_pages; i++, page = page->next)

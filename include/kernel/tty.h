@@ -1,6 +1,10 @@
 #ifndef _KERNEL_TTY_H_
 #define _KERNEL_TTY_H_
 
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
+
 typedef void (*TTY_INIT)(void);
 typedef int (*TTY_SETATTR)(unsigned long, unsigned long);
 typedef void (*TTY_MOVE)(unsigned char, unsigned char);
@@ -31,5 +35,7 @@ tty_clear_screen();
 
 void 
 tty_putchar(int c);
+
+__END_DECLS
 
 #endif // _KERNEL_TTY_H_

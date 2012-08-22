@@ -11,29 +11,34 @@
 
 #define PM_DATA_BEGIN_ADDR    PM_PAGE_ALIGN_SUP(& __e_kernel)
 
-
-struct pm_page_descr
+namespace Stage3
 {
-    phys_addr_t addr;
-    uint8_t ref_count;
-    
-    struct pm_page_descr *prev, *next;
-};
+namespace PhysicalMemoryAllocator
+{
 
-void
-pm_state_dump();
+    struct page_descr
+    {
+        phys_addr_t addr;
+        uint8_t ref_count;
+        
+        struct page_descr *prev, *next;
+    };    
 
-int
-pm_alloc_init(uint64_t ram_size);
+    int
+    init(uint64_t ram_size);
 
-int
-pm_alloc_mark_reserved(phys_addr_t lower, phys_addr_t upper);
+    int
+    mark_reserved(phys_addr_t lower, phys_addr_t upper);
 
-phys_addr_t
-pm_alloc_getpage();
+    phys_addr_t
+    getpage();
 
-int
-pm_alloc_free(phys_addr_t page);
+    int
+    free(phys_addr_t page);
 
+    void
+    state_dump();
 
+}
+}
 #endif // _HW_PM_ALLOC_H_

@@ -1,5 +1,5 @@
-#include <kernel/hw/interrupts.h>
-#include <kernel/hw/exceptions.h>
+#include <kernel/hw/interrupts.hpp>
+#include <kernel/hw/exceptions.hpp>
 
 .file "interrupt_wrappers.S"
 

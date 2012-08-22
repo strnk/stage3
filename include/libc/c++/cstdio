@@ -1,0 +1,6 @@
+#ifndef _LIBCPP_CSTDIO_H_
+#define _LIBCPP_CSTDIO_H_
+
+#include <stdio.h>
+
+#endif

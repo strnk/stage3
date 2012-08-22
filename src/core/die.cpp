@@ -1,4 +1,4 @@
-#include <kernel/die.h>
+#include <kernel/die.hpp>
 #include <kernel/tty.h>
 #include <kernel/tty/videomem.h>
 

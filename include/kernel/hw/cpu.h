@@ -3,6 +3,7 @@
 
 #ifndef ASM_SOURCE
 #include <kernel/types.h>
+#include <sys/cdefs.h>
 
 struct cpu_context
 {
@@ -24,8 +25,13 @@ struct cpu_context
 } __pack;
 
 
+__BEGIN_DECLS
+
 uint32_t 
 cpuid_supported(void);
+
+__END_DECLS
+
 #endif
 
 #endif // _HW_CPU_H_

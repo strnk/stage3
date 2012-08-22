@@ -1,6 +1,10 @@
 #ifndef _HW_EXCEPTIONS_H_
 #define _HW_EXCEPTIONS_H_
 
+#ifndef ASM_SOURCE
+# include <kernel/hw/cpu.h>
+#endif
+
 // Exception list
 #define EXCEPTION_DIVIDE_ERROR                  0
 #define EXCEPTION_DEBUG                         1
@@ -40,5 +44,27 @@
 #define EXCEPTION_PF_USER_MODE                  0x04
 #define EXCEPTION_PF_RSVD                       0x08
 #define EXCEPTION_PF_INSTRUCTION_FETCH          0x10
+
+#ifndef ASM_SOURCE
+namespace Stage3 {
+namespace Exceptions {
+
+    typedef void 
+    (*handler_t)(uint64_t exception, 
+        const struct cpu_context *context);
+
+    void
+    init(void);
+
+    void
+    define_handler(int exception, handler_t handler);
+
+    void
+    default_handler(uint64_t exception, 
+        const struct cpu_context *context);
+            
+}
+}
+#endif // ASM_SOURCE
 
 #endif // EXCEPTIONS
