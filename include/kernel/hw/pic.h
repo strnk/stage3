@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <inttypes.h>
+#include <sys/cdefs.h>
 
 // Ports used by the two i8259 PICs
 #define PIC_MASTER_COMMAND  0x0020
@@ -80,13 +81,15 @@
 #define PIC_READ_IS_REG         0x03
 #define PIC_POLL                0x04
 
-
+__BEGIN_DECLS
 
 void
 init_pic(void);
 
+void
+disable_pic(void);
 
-void inline
+inline void
 pic_set_irq_mask(uint16_t mask);
 
 
@@ -96,5 +99,8 @@ pic_enable_irq(uint8_t irqLine);
 
 void
 pic_disable_irq(uint8_t irqLine);
+
+
+__END_DECLS
 
 #endif // _HW_PIC_H_

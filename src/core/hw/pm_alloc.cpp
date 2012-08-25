@@ -3,14 +3,15 @@
 #include <stdio.h>
 
 extern unsigned char __e_kernel;
-extern unsigned char __b_kernel;
+extern unsigned char __e_kernel_phys;
+extern unsigned char __b_kernel_phys;
 
 using namespace Stage3::PhysicalMemoryAllocator;
 
 namespace Stage3 {
 namespace PhysicalMemoryAllocator {
-    struct page_descr* pm_free_pages;
-    struct page_descr* pm_used_pages;
+    circular_list pm_free_pages;
+    circular_list pm_used_pages;
 
     uint32_t pm_total_pages_count;
     uint32_t pm_used_pages_count;
@@ -30,34 +31,38 @@ int
 Stage3::PhysicalMemoryAllocator::init(uint64_t ram_size)
 {    
     uint64_t page_count = ram_size >> PM_PAGE_BITS;
-    uint64_t kernel_begin = PM_PAGE_ALIGN_INF(& __b_kernel);
-    uint64_t kernel_end = PM_PAGE_ALIGN_SUP(PM_DATA_BEGIN_ADDR + page_count * sizeof(struct page_descr));
+    uint64_t kernel_begin = PM_PAGE_ALIGN_INF(& __b_kernel_phys);
+    uint64_t kernel_end = PM_PAGE_ALIGN_SUP(
+        PM_DATA_BEGIN_ADDR_PHYS + page_count * sizeof(struct page_descr));
     unsigned int i;
     struct page_descr* page;
     
+    pm_free_pages = circular_list();
+    pm_used_pages = circular_list();
+    
+    /** Page 0 is reserved */
+    page = ((struct page_descr*) PM_DATA_BEGIN_ADDR);
+    page->prev = NULL;
+    page->next = NULL;
+    page->addr = 0;
+    page->ref_count = 255;
+    
+    pm_used_pages.insert(page);
     
     /** Mark pages 1-N as free */
     for (i = 1, page = ((struct page_descr*)PM_DATA_BEGIN_ADDR)+1; 
         i < page_count; 
         i++, page++)
     {
-        page->prev = page-1;
-        page->next = page+1;
-        page->addr = i << PM_PAGE_BITS;
-        page->ref_count = 0;
+        page->ref_count = 255;
+        page->addr = i << PM_PAGE_BITS;  
+        
+        if (i > 3)
+            pm_free_pages.__fast_insert_end(page);
+        else      
+            pm_free_pages.insert(page);
     }
-    
-    pm_free_pages =  ((struct page_descr*)PM_DATA_BEGIN_ADDR)+1;
-    pm_free_pages->prev = page-1;
-    pm_free_pages->prev->next = pm_free_pages;
-    
-    /** Mark page 0 (reserved) as used */
-    pm_used_pages = (struct page_descr*)PM_DATA_BEGIN_ADDR;
-    pm_used_pages->prev = pm_used_pages;
-    pm_used_pages->next = pm_used_pages;
-    pm_used_pages->addr = 0;
-    pm_used_pages->ref_count = 255;
-    
+          
     pm_total_pages_count = page_count;
     pm_used_pages_count = 1;
     
@@ -69,61 +74,32 @@ Stage3::PhysicalMemoryAllocator::init(uint64_t ram_size)
 int
 Stage3::PhysicalMemoryAllocator::mark_reserved(phys_addr_t lower, phys_addr_t upper)
 {
-    int i;
-    struct page_descr* page;
-    struct page_descr* prev;
+    phys_addr_t i;
+    struct page_descr* page, *next;
     
     lower = PM_PAGE_ALIGN_INF(lower);
     upper = PM_PAGE_ALIGN_SUP(upper);
     
-    for (i = 0, page = pm_free_pages; (!i || (page != pm_free_pages && page->addr <= upper)); i++, page = page->next)
-    {  
+    pm_used_pages_count += pm_free_pages.move(lower, upper, pm_used_pages);
     
-        if (page->addr >= lower && page->addr <= upper)
-        {
-            prev = page->prev;
-            prev->next = page->next;
-            page->next->prev = prev;
-            
-            pm_used_pages->prev->next = page;
-            page->prev = pm_used_pages->prev;
-            page->next = pm_used_pages;
-            pm_used_pages->prev = page;
-            page->ref_count = 255;
-            page = prev;
-            
-            pm_used_pages_count++;
-        }
-    }
     return 0;
 }
 
 phys_addr_t
 Stage3::PhysicalMemoryAllocator::getpage()
 {
-    struct page_descr* rpage = pm_free_pages;
+    struct page_descr* rpage = pm_free_pages.head();
     
-    if (pm_free_pages == NULL)
-        die("Out of memory");
+    if (rpage == NULL)
+    { puts("Out of memory !"); for (;;) asm volatile("hlt" ::: "memory"); }
+//        die("Oops, out of memory !");
         
-    if (rpage->next == rpage)
-    {
-        pm_free_pages = NULL;
-    }
-    else
-    {
-        rpage->prev->next = rpage->next;
-        rpage->next->prev = rpage->prev;
-        pm_free_pages = rpage->next;
-    }
-    
-    rpage->prev = pm_used_pages->prev;
-    rpage->next = pm_used_pages;
-    pm_used_pages->prev->next = rpage;
-    pm_used_pages->prev = rpage;
+    pm_free_pages.remove(rpage);
+    pm_used_pages.insert(rpage);
     
     pm_used_pages_count++;
     rpage->ref_count = 1;
+    
     return rpage->addr;
 }
 
@@ -131,46 +107,147 @@ int
 Stage3::PhysicalMemoryAllocator::free(phys_addr_t addr)
 {    
     int i;
-    struct page_descr* page;
     addr = PM_PAGE_ALIGN_INF(addr);
+    struct page_descr* page = pm_used_pages.find(addr);
     
-    for (i = 0, page = pm_used_pages; !i || page != pm_used_pages; i++, page = page->next)
+    if (page == NULL)
     {
-        if (page->addr == addr)
+        printf("%lx free fail: not in used pages\n", page->addr);
+        return -1;
+    }
+    else
+    {
+        page->ref_count--;
+        
+        if (page->ref_count == 0)
         {
-            page->ref_count--;
+            pm_used_pages.remove(page);
+            pm_free_pages.insert(page);
             
-            if (page->ref_count == 0)
-            {
-                if (page->next == page)
-                    pm_used_pages = NULL;
-                else
-                {
-                    page->prev->next = page->next;
-                    page->next->prev = page->prev;
-                    
-                    if (pm_used_pages == page)
-                        pm_used_pages = page->next;
-                }
-                
-                if (pm_free_pages == NULL)
-                    pm_free_pages = page;
-                else
-                {
-                    pm_free_pages->prev->next = page;
-                    page->prev = pm_free_pages->prev;
-                    
-                    pm_free_pages->prev = page;
-                    page->next = pm_free_pages;
-                    pm_free_pages = page;
-                }
-                
-                pm_used_pages_count--;
-            }
+            pm_used_pages_count--;
+        }
+        
+        return page->ref_count;
+    }
+}
+
+/** Circular list helpers */
+void
+circular_list::insert(struct page_descr *elmt)
+{
+    if (begin == NULL)
+    {
+        begin = elmt;
+        begin->next = begin;
+        begin->prev = begin;
+    }
+    else if (begin->next == begin)
+    {
+        begin->next = elmt;
+        begin->prev = elmt;
+        elmt->prev = begin;
+        elmt->next = begin;
+        
+        if (elmt->addr < begin->addr)
+            begin = elmt;
+    }
+    else
+    {
+        struct page_descr *prev, *current;
+        
+        for (prev = begin->prev, current = begin;
+            current->addr < elmt->addr && current != begin->prev;
+            prev = current, current = current->next);
             
-            return page->ref_count;
+        prev->next = elmt;
+        elmt->prev = prev;
+        elmt->next = current;
+        current->prev = elmt;
+        
+        if (elmt->addr < begin->addr)
+            begin = elmt;
+    }
+    
+    count++;
+}
+
+
+void
+circular_list::__fast_insert_end(struct page_descr *elmt)
+{
+    begin->prev->next = elmt;
+    elmt->prev = begin->prev;
+    elmt->next = begin;
+    begin->prev = elmt;
+    count++;
+}
+        
+struct page_descr*
+circular_list::find(phys_addr_t elmt)
+{
+    int i;
+    struct page_descr* it;
+    
+    for (i = 0, it = begin; (!i) || (it != begin); i++, it = it->next)
+    {
+        if (it->addr == elmt)
+            return it;
+    }
+    
+    return NULL;
+}
+        
+void
+circular_list::remove(struct page_descr *elmt)
+{
+    if (elmt == begin && elmt->next == begin)
+    {
+        begin = NULL;
+    }
+    else
+    {
+        elmt->prev->next = elmt->next;
+        elmt->next->prev = elmt->prev;
+        
+        if (elmt == begin)
+            begin = elmt->next;
+    }
+    
+    elmt->next = NULL;
+    elmt->prev = NULL;
+    count--;
+}
+
+
+uint32_t
+circular_list::move(phys_addr_t addr_begin, phys_addr_t addr_end, 
+    circular_list& dest)
+{
+    if (begin == NULL)
+        return 0;
+    
+    unsigned i, total = count, moved = 0;    
+    struct page_descr* page, *next;
+   
+    for (i = 0, page = begin;
+        (i < total && page->addr <= addr_end);
+        i++, page = next)
+    {
+        next = page->next;
+        
+        if (page->addr >= addr_begin && page->addr <= addr_end)
+        {
+            remove(page);
+            dest.insert(page);
+            moved++;
         }
     }
     
-    return -1;
+    return moved;
+}
+
+struct page_descr*
+circular_list::head()
+{
+    return begin;
 }

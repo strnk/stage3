@@ -1,4 +1,4 @@
-#include <multiboot.h>
+#include <multiboot.hpp>
 
 
 #define EXT_C(sym)                      sym
@@ -21,6 +21,10 @@
 #endif
 
     .global  start, _start
+    .extern __b_ctors
+    .extern __e_ctors
+    .extern __b_dtors
+    .extern __e_dtors
     
     
     .section .multiboot, SECTION_TYPE
@@ -202,15 +206,36 @@ multiboot_entry:
     
     /* Initialize the stack pointer. */
     movq    $(0x110000 + STACK_SIZE), %rsp
-
+    
     // clear EFLAG
     pushq   $0
     popf
     
+    /* Call the C++ static objects constructors */
+    pushq   %rdi
+    pushq   %rsi
+    
+    movq    $__b_ctors, %rbx
+    jmp     loop_ctors
+    
+call_ctor:
+    call    *(%rbx)
+    add     $8, %rbx
+    
+loop_ctors:
+    cmpq    $__e_ctors, %rbx
+    jb      call_ctor
+    
+    
+    /* Jump into the kernel main function */
+    popq    %rsi    // 1st main() arg
+    popq    %rdi    // 2nd main() arg
+    
     movq    $EXT_C(main), %rax
     call    *%rax
 
-    /* Halt. */
+    /* We should get there but halt anyway. */
+    cli
     loop:   hlt
     jmp     loop
 

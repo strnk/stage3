@@ -42,7 +42,8 @@ Stage3::Exceptions::init(void)
     {
         Stage3::Interrupts::IDT::define_handler(INTERRUPTS_EXCEPTION_BASE + i, 
             __exception_wrappers[i], 0);
-        define_handler(i, default_handler);
+        Stage3::Exceptions::define_handler(i, 
+            Stage3::Exceptions::default_handler);
     }
 }
 

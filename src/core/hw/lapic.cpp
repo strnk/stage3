@@ -2,12 +2,79 @@
 #include <kernel/hw/lapic.hpp>
 #include <kernel/hw/paging.hpp>
 #include <kernel/hw/pm_alloc.hpp>
-
-extern "C" {
+#include <kernel/hw/mp.hpp>
 #include <kernel/hw/msr.h>
-}
+
 
 using namespace Stage3;
+using namespace Stage3::Interrupts;
+
+APICManager::APICManager()
+{
+}
+
+uint8_t APICManager::getType()
+{
+    return 1;
+}
+
+void APICManager::init()
+{
+    ioapic_id = MP::getFirstIOAPIC();
+    ioapic = Interrupts::IOAPIC(MP::getIOAPICaddr(ioapic_id));
+
+    PhysicalMemoryAllocator::mark_reserved(
+        MP::getIOAPICaddr(ioapic_id), MP::getIOAPICaddr(ioapic_id)+0x3FF);
+    Paging::vmap((phys_addr_t)MP::getIOAPICaddr(ioapic_id),
+        (virt_addr_t)MP::getIOAPICaddr(ioapic_id), 1, 
+        PAGING_PAGE_SUPERVISOR);
+
+    for (MP::configuration_table::iterator it 
+            = MP::configTablePtr()->begin(); 
+        it != MP::configTablePtr()->end();
+        it ++)
+    {
+        if (it.type() == MP::IOINTERRUPT
+            && it.as_iointerrupt().dest_id == ioapic_id
+            )
+        {
+            uint8_t irq = it.as_iointerrupt().source_irq;
+            uint8_t apic_irq = it.as_iointerrupt().dest_irq;
+        
+            switch (MP::busType(it.as_iointerrupt().source_id))
+            {
+                case MP_CFG_BUS_ISA:
+                {
+                    ioapic.map(INTERRUPTS_MASKABLE_BASE + irq, 
+                        apic_irq, false, false, 0, false);
+                }
+            }
+        }
+    }
+}
+
+void APICManager::shutdown()
+{
+}
+
+void APICManager::enable(uint8_t irq)
+{
+}
+
+void APICManager::disable(uint8_t irq)
+{
+}
+
+
+void APICManager::map(uint8_t irq, uint8_t vector)
+{
+}
+
+void APICManager::eoi(uint64_t vector)
+{
+}
+
+
 uint32_t* APIC_BASE_ADDRESS;
 
 void 

@@ -1,29 +1,29 @@
-#include <multiboot.h>
+#include <multiboot.hpp>
 #include <inttypes.h>
 #include <stdio.h>
 
+using namespace Stage3::Multiboot;
+
 uint64_t
-multiboot_find_phys_max(multiboot_info_t* mbi)
+Stage3::Multiboot::info_t::find_phys_max()
 {
-    multiboot_memory_map_t *mmap;
-    uint64_t ram_size = (mbi->mem_lower + mbi->mem_upper) << 10;
+    Multiboot::memory_map_t::iterator it;
+    uint64_t ram_size = (mem_lower + mem_upper) << 10;
     uint64_t track = 0;
     
-    for (mmap = (multiboot_memory_map_t*)(uintptr_t)mbi->mmap_addr;
-        (uintptr_t)mmap < mbi->mmap_addr + mbi->mmap_length;
-        mmap++)
+    for (it = mmap_begin(); it != mmap_end(); it++)
     {
-        if (mmap->addr + mmap->len > ram_size && mmap->addr != track)
+        if (it->addr + it->len > ram_size && it->addr != track)
             return track;
             
-        track = mmap->addr + mmap->len;
+        track = it->addr + it->len;
     } 
     
     return track;
 }
 
 void
-multiboot_dump(multiboot_info_t* mbi)
+Stage3::Multiboot::dump(info_t* mbi)
 {
     printf("  flags: 0x%x\n", mbi->flags);
     
@@ -45,12 +45,12 @@ multiboot_dump(multiboot_info_t* mbi)
     
     if (mbi->flags & MULTIBOOT_INFO_MODS)
     {
-        int i;
-        multiboot_module_t *m;
+        unsigned int i;
+        module_t *m;
         
         printf("  %d mods loaded at 0x%x :\n", mbi->mods_count, mbi->mods_addr);
         
-        for (i = 0, m = (multiboot_module_t*)(uint64_t)mbi->mods_addr; 
+        for (i = 0, m = (module_t*)(uint64_t)mbi->mods_addr; 
             i < mbi->mods_count; 
             i++, m++)
             printf("    ` 0x%x - 0x%x -- %s\n", m->mod_start, m->mod_end,
@@ -59,7 +59,7 @@ multiboot_dump(multiboot_info_t* mbi)
     
     if (mbi->flags & MULTIBOOT_INFO_ELF_SHDR)
     {
-        multiboot_elf_section_header_table_t *elf_sht = &(mbi->u.elf_sec);
+        elf_section_header_table_t *elf_sht = &(mbi->u.elf_sec);
         
         printf("  ELF section header table: num=%d, size=0x%x, addr=0x%x, shndx=0x%x\n",
             elf_sht->num, elf_sht->size, elf_sht->addr, elf_sht->shndx);
@@ -67,12 +67,12 @@ multiboot_dump(multiboot_info_t* mbi)
     
     if (mbi->flags & MULTIBOOT_INFO_MEM_MAP)
     {
-        multiboot_memory_map_t *mmap;
+        memory_map_t *mmap;
         
         printf("  Memory map: addr=0x%x, length=0x%x\n", 
             mbi->mmap_addr, mbi->mmap_length);
 
-        for (mmap = (multiboot_memory_map_t*)(uintptr_t)mbi->mmap_addr;
+        for (mmap = (memory_map_t*)(uintptr_t)mbi->mmap_addr;
             (uintptr_t)mmap < mbi->mmap_addr + mbi->mmap_length;
             mmap++)
         {

@@ -1,10 +1,7 @@
 extern "C" {
-#include <multiboot.h>
 #include <kernel/tty.h>
 #include <kernel/tty/videomem.h>
-#include <kernel/hw/msr.h>
 #include <kernel/hw/ebda.h>
-#include <kernel/hw/ioapic.h>
 
 }
 
@@ -13,60 +10,69 @@ extern "C" {
 #include <kernel/hw/exceptions.hpp>
 #include <kernel/hw/pm_alloc.hpp>
 #include <kernel/hw/paging.hpp>
+#include <kernel/hw/ioapic.hpp>
 #include <kernel/hw/lapic.hpp>
+#include <kernel/hw/kheap.hpp>
+#include <kernel/hw/mp.hpp>
+#include <kernel/hw/irq.h>
+#include <kernel/hw/pic.h>
 #include <kernel/die.hpp>
+#include <multiboot.hpp>
+
+#include <kernel/devices/keyboard.hpp>
 
 #include <cstdio>
 
 using namespace Stage3;
 
-void main(unsigned long magic, multiboot_info_t* mbi)
+void main(unsigned long magic, Multiboot::info_t* mbi)
 {
     /** 
      ** Setup the flat segmentation memory model 
      **/
     GDT::init();
     
+    /** 
+     ** Console display initialization 
+     **/
+    tty_set_handler(&TTY_VIDEOMEM);
+    puts("STAGE3 operating system");
+
+
     /**
      ** Initialize exceptions vectors
      **/
     Interrupts::IDT::init();
     Interrupts::init();
     
-    /** 
-     ** Console display initialization 
-     **/
-    tty_set_handler(&TTY_VIDEOMEM);
-    puts("STAGE3 operating system");
-    
     /** We _need_ multiboot data, halt here if we're not loaded with multiboot */
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
     {
-        printf("No multiboot valid data found, halting.");
+        die("No multiboot valid data found, halting.");
         return;
     }
     
     /** 
      ** Physical memory allocator initialization
      **/
-    PhysicalMemoryAllocator::init(multiboot_find_phys_max(mbi));
+    PhysicalMemoryAllocator::init(mbi->find_phys_max());
     
     // Reserved memory pages from multiboot data
-    multiboot_memory_map_t *mmap;
-    for (mmap = (multiboot_memory_map_t*)(uint64_t)mbi->mmap_addr;
-        (uint64_t)mmap < mbi->mmap_addr + mbi->mmap_length;
-        mmap++)
+    Multiboot::memory_map_t::iterator it;
+    for (it = mbi->mmap_begin(); it != mbi->mmap_end(); it++)
     {
-        if (mmap->type != MULTIBOOT_MEMORY_AVAILABLE)
+        if (!it->isAvailable())
         {
-            printf("%lx -- %lx\n", mmap->addr, mmap->addr+mmap->len-1);
-            PhysicalMemoryAllocator::mark_reserved(mmap->addr, 
-                mmap->addr+mmap->len-1);
+            //printf("%lx -- %lx\n", it->addr, it->addr + it->len-1);
+            PhysicalMemoryAllocator::mark_reserved(
+                it->addr, 
+                it->addr+it->len-1
+            );
         }
     }
     
     // Bootloader used pages
-    PhysicalMemoryAllocator::mark_reserved(0x1000, 0x120000);
+    PhysicalMemoryAllocator::mark_reserved(0x1000, 0x120000-1);
     PhysicalMemoryAllocator::state_dump();
     
     
@@ -97,27 +103,59 @@ void main(unsigned long magic, multiboot_info_t* mbi)
         Paging::vunmap((virt_addr_t)0x200000, 512);
     }
     
+    /**
+     ** Kernel heap init
+     **/
+    //*(uint32_t*)0xdeadbeef = 0;
+    HeapAllocator::init(1024);
     
-    printf("CPUID is %ssupported.\n", (cpuid_supported() != 0)?"":"not ");
+    void* p1 = malloc(2048),
+    *p2 = malloc(2048),
+    *p3 = malloc(32);
+    
+    HeapAllocator::state_dump();
+    
+    puts("--");
+    free(p1);
+    HeapAllocator::state_dump();
+    
+    puts("--");
+    free(p2);
+    HeapAllocator::state_dump();
+    
+    puts("--");
+    free(p3);
+    HeapAllocator::state_dump();
+    
     
     /** EBDA initialization */
     ebda_init();
     
-    /** Interrupts initialization */
-    /*init_apic(0);
-    {
-        
-        printf("  APIC: \n    ` Base address: 0x%lx\n",
-            (uintptr_t)APIC_BASE_ADDRESS);
-        printf("    ` Spurious register: 0x%x\n", 
-            read_lapic_reg(APIC_REG_SPURIOUS));
-        printf("    ` Version: 0x%x\n", read_lapic_reg(APIC_REG_VERSION));
-        printf("    ` ID: 0x%x\n", read_lapic_reg(APIC_REG_ID));
-        printf("    ` DFR: 0x%x\n", read_lapic_reg(APIC_REG_DFR));
-    }*/
+    /** MP Table initialization */
+    MP::init();
     
+    if (MP::hasIOAPIC())
+    {
+        disable_pic();
+        /*
+        Interrupts::define_handler(IRQ_ISA_KEYBOARD, 
+            keyboard_interrupt_handler);
+            
+        Interrupts::bspIOAPIC.enableIRQ(
+            Interrupts::bspIOAPIC.getIRQfromVector(
+                INTERRUPTS_MASKABLE_BASE + IRQ_ISA_KEYBOARD)
+        );*/
+        
+        //__enable_interrupts();
+    }
+    else
+    {
+        // PIC initialization
+    }
+    
+    PhysicalMemoryAllocator::state_dump();
     /** Print end message */
-    puts(COLOR(ISO6429_RED) "Halting.");
+    printf(COLOR(ISO6429_RED) "Halting.");
     
     for (;;)
         asm volatile("hlt" : : : "memory");

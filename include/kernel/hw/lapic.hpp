@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <kernel/types.h>
+#include <kernel/hw/interrupts.hpp>
+#include <kernel/hw/ioapic.hpp>
 
 #define APIC_REG_ID         0x0020
 #define APIC_REG_VERSION    0x0030
@@ -22,6 +24,32 @@
 #define APIC_REG_LVT_LINT1  0x0360
 #define APIC_REG_LVT_ERR    0x0370
 
+
+namespace Stage3 {
+namespace Interrupts {
+
+    class APICManager : public Manager
+    {
+        uint8_t ioapic_id;
+        IOAPIC ioapic;
+        
+        public:
+        APICManager();
+        
+        uint8_t getType();
+        
+        void init();
+        void shutdown();
+        
+        void enable(uint8_t irq);
+        void disable(uint8_t irq);
+        
+        void map(uint8_t irq, uint8_t vector);
+        void eoi(uint64_t vector);
+    };
+    
+}
+}
 void 
 init_apic(phys_addr_t relocation);
 

@@ -2,7 +2,6 @@
 #include <kernel/hw/pm_alloc.hpp>
 #include <cstdio>
 
-#define PAGING_BASE                 0xfffffffc00000000
 #define VPAGE_PAGING_PT             PAGING_BASE
 #define VPAGE_PML4T                 1
 #define VPAGE_PDPT                  2
@@ -77,7 +76,6 @@ int
 Stage3::Paging::vmap(phys_addr_t paddr, virt_addr_t vaddr, uint32_t npage, 
     bool user)
 {
-    printf("VMAP %lx -> %lx, %d pages\n", paddr, vaddr, npage);
     while (npage)
     {
         if (_page_vmap(paddr, vaddr, user) < 0)
@@ -94,7 +92,7 @@ Stage3::Paging::vmap(phys_addr_t paddr, virt_addr_t vaddr, uint32_t npage,
 int
 Stage3::Paging::vunmap(virt_addr_t vaddr, uint32_t npage)
 {
-    printf("VUNMAP %lx, %d pages\n", vaddr, npage);
+    //printf("VUNMAP %lx, %d pages\n", vaddr, npage);
     while (npage)
     {
         int r = _page_vunmap(vaddr);
@@ -120,8 +118,9 @@ pdpt_entry::init()
     int idx;
     struct pdpt_entry* PDPT = (struct pdpt_entry*)Stage3::PhysicalMemoryAllocator::getpage();
     
+    __vload_pdpt(PDPT);    
     for (idx = 0; idx < 512; idx++)
-        PDPT[idx] = pdpt_entry();
+        _VPDPT[idx] = pdpt_entry();
        
     return PDPT;
 }
@@ -132,8 +131,9 @@ pd_entry::init()
     int idx;
     struct pd_entry* PD = (struct pd_entry*)Stage3::PhysicalMemoryAllocator::getpage();
     
+    __vload_pd(PD);  
     for (idx = 0; idx < 512; idx++)
-        PD[idx] = pd_entry();
+        _VPD[idx] = pd_entry();
         
     return PD;
 }
@@ -144,8 +144,9 @@ pt_entry::init()
     int idx;
     struct pt_entry* PT = (struct pt_entry*)Stage3::PhysicalMemoryAllocator::getpage();
     
+    __vload_pt(PT);
     for (idx = 0; idx < 512; idx++)
-        PT[idx] = pt_entry();
+        _VPT[idx] = pt_entry();
         
     return PT;
 }
@@ -313,6 +314,7 @@ _page_vunmap(virt_addr_t vaddr)
 void
 _init_vload()
 {
+    unsigned idx;
     struct linear_addr linear(VPAGE_PAGING_PT);
     struct pml4t_entry *pml4te = &PML4T[PML4Toff(linear)];
     struct pdpt_entry *pdpt = NULL, *pdpte = NULL;
@@ -322,7 +324,10 @@ _init_vload()
     // PML4T level
     if (!pml4te->isPresent())
     {
-        pdpt = pdpt_entry::init();
+        pdpt = (struct pdpt_entry*)Stage3::PhysicalMemoryAllocator::getpage();
+ 
+        for (idx = 0; idx < 512; idx++)
+            pdpt[idx] = pdpt_entry();
         
         *pml4te = pml4t_entry(reinterpret_cast<phys_addr_t>(pdpt), 
                     PAGING_PAGE_PRESENT, PAGING_PAGE_RW, false, 
@@ -336,7 +341,10 @@ _init_vload()
     // PDPT level
     if (!pdpte->isPresent())
     {
-        pd = pd_entry::init();
+        pd = (struct pd_entry*)Stage3::PhysicalMemoryAllocator::getpage();
+ 
+        for (idx = 0; idx < 512; idx++)
+            pd[idx] = pd_entry();
         
         *pdpte = pdpt_entry(reinterpret_cast<phys_addr_t>(pd), 
                     PAGING_PAGE_PRESENT, PAGING_PAGE_RW, false,
@@ -350,7 +358,10 @@ _init_vload()
     // PD level
     if (!pde->isPresent())
     {
-        pt = pt_entry::init();
+        pt = (struct pt_entry*)Stage3::PhysicalMemoryAllocator::getpage();
+ 
+        for (idx = 0; idx < 512; idx++)
+            pt[idx] = pt_entry();
         
         *pde = pd_entry(reinterpret_cast<phys_addr_t>(pt), 
                 PAGING_PAGE_PRESENT, PAGING_PAGE_RW, false,

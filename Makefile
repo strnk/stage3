@@ -2,19 +2,20 @@ PHYS_KBASE  := 0x0000000000200000
 VIRT_KBASE  := 0xFFFFFFFF80000000
 
 CC          := gcc
-CFLAGS      := -g -m64 -Wall \
+CFLAGS      := -g -m64 -Wall -Wextra \
                -mno-red-zone -mcmodel=large \
                -nostdlib -nostdinc -ffreestanding \
                -DSTAGE3 -D__PHYS_KBASE=$(PHYS_KBASE) \
                -D__VIRT_KBASE=$(VIRT_KBASE)
                
 CXX         := g++
-CXXFLAGS    := -g -m64 -Wall \
+CXXFLAGS    := -g -m64 -Wall -Wextra \
                -mno-red-zone -mcmodel=large \
                -nostdlib -nostdinc -ffreestanding \
                -DSTAGE3 -D__PHYS_KBASE=$(PHYS_KBASE) \
                -D__VIRT_KBASE=$(VIRT_KBASE) \
-               -fno-rtti -fno-exceptions -std=c++0x
+               -fno-rtti -nostartfiles -fno-exceptions \
+               -fno-stack-protector -std=c++0x
 
 LD          := ld
 LDFLAGS     := --defsym PHYS_KBASE=$(PHYS_KBASE) \
@@ -50,10 +51,10 @@ runb: $(BOOT_ISO)
 	bochs -f ./extra/bochsrc
     
 rund: $(KERNEL)
-	qemu-system-x86_64 -kernel $(KERNEL) -net none -m 4 -no-reboot -no-shutdown -s -monitor stdio
+	qemu-system-x86_64 -kernel $(KERNEL) -net none -m 64 -no-reboot -no-shutdown -s -monitor stdio
 	
 run: $(KERNEL)
-	qemu-system-x86_64 -kernel $(KERNEL) -net none -m 4 -no-reboot
+	qemu-system-x86_64 -kernel $(KERNEL) -net none -m 64 -no-reboot
 	
 	
 $(BOOT_IMAGE): $(KERNEL)

@@ -4,12 +4,21 @@ CORE_SRC    := stage3.cpp multiboot.c tty.c die.cpp
 CORE_HW     := $(CORE)/hw
 CORE_HW_SRC := interrupts.cpp exceptions.cpp interrupt_wrappers.S \
                 segmentation.cpp msr.c io.c lapic.cpp pic.c cpu.c cpuid.S \
-                pm_alloc.cpp paging.cpp ebda.c ioapic.c mp.cpp
+                pm_alloc.cpp paging.cpp ebda.c ioapic.cpp mp.cpp \
+                kheap.cpp
 
 CORE_TTY        := $(CORE)/tty
 CORE_TTY_SRC    := videomem.c
 
+CORE_CPP        := $(CORE)/c++
+CORE_CPP_SRC    := pure_virtual.cpp
+
+CORE_DEVICES    := $(CORE)/devices
+CORE_DEVICES_SRC:= keyboard.cpp
+
 SOURCES :=  $(SOURCES)  \
             $(addprefix $(CORE)/, $(CORE_SRC))  \
             $(addprefix $(CORE_HW)/, $(CORE_HW_SRC)) \
-            $(addprefix $(CORE_TTY)/, $(CORE_TTY_SRC)) 
+            $(addprefix $(CORE_TTY)/, $(CORE_TTY_SRC)) \
+            $(addprefix $(CORE_CPP)/, $(CORE_CPP_SRC)) \
+            $(addprefix $(CORE_DEVICES)/, $(CORE_DEVICES_SRC))

@@ -2,6 +2,9 @@
 #define _HW_IO_H_
 
 #include <inttypes.h>
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
 
 inline void
 outb(uint16_t port, uint8_t value);
@@ -20,5 +23,7 @@ inw(uint16_t port);
 
 inline uint32_t
 inl(uint16_t port);
+
+__END_DECLS
 
 #endif // _HW_IO_H_

@@ -62,7 +62,17 @@ namespace GDT
         unsigned granularity : 1;
         uint8_t base_address_hi;    // Base[24..31]
         
-        gdt_entry(uint8_t privilege, bool exec);
+        gdt_entry()
+    : size_lo(0), base_address_lo(0), base_address_mid(0), accessed(0), rw(0), 
+    dc(0), execute(0), type(0), 
+    dpl(0), present(0), size_hi(0), avl(0), longmode(0), 
+    op_size(0), granularity(0), base_address_hi(0) { }
+    
+        gdt_entry(uint8_t privilege, bool exec)    
+    : size_lo(0), base_address_lo(0), base_address_mid(0), accessed(0), rw(1), 
+    dc(GDTE_DC_CODE_DPL_STRICT), execute(exec), type(GDTE_TYPE_CODE_DATA), 
+    dpl(privilege), present(GDTE_PRESENT), size_hi(0), avl(0), longmode(1), 
+    op_size(0), granularity(0), base_address_hi(0) { }
     } __packalign(8);
 
     // Structure of the IDT register
@@ -79,6 +89,9 @@ namespace GDT
 
     void 
     init(void);
+    
+    void
+    dump(void);
 }
 }
 

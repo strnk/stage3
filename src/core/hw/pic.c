@@ -29,8 +29,15 @@ init_pic(void)
     pic_set_irq_mask(0xFFFF);
 }
 
+void
+disable_pic(void)
+{
+    outb(PIC_MASTER_DATA, 0xFF);
+    outb(PIC_SLAVE_DATA, 0xFF);
+}
 
-void inline
+
+inline void
 pic_set_irq_mask(uint16_t mask)
 {
     outb(PIC_MASTER_DATA, PIC_OCW1 | (mask & 0x00FB));

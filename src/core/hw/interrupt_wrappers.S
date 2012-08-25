@@ -4,9 +4,78 @@
 .file "interrupt_wrappers.S"
 
 .global __exception_wrappers
+.global __interrupt_wrappers
 .extern __exception_handlers
+.extern __interrupt_handlers
 
 .text
+
+/* Generic wrapper for interrupts */
+.irp intNum,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  \
+             10, 11, 12, 13, 14, 15
+    
+    // Align on a dword boundary and fill with NOP (0x90)
+    .p2align 4, 0x90
+    __interrupt_wrapper_\intNum:
+    .type __interrupt_wrapper_\intNum, @function
+
+        /**    --STACK--
+        |------------------|
+        |          |  SS   |  +32
+        |------------------|
+        |       (rsp)      |  +24
+        |------------------|
+        |     RFLAGS       |  +16
+        |------------------|
+        |          |   CS  |  +8
+        |------------------|
+        |       RIP        |  <-- rsp
+        |------------------|
+        */
+
+        /* Dummy error code */
+        pushq $0
+        
+        /* Context backup */
+        pushq %rbp
+        movq %rsp, %rbp
+
+        pushq %rdi
+        pushq %rsi
+        pushq %rax
+        pushq %rbx
+        pushq %rcx
+        pushq %rdx
+        pushw %fs
+        pushw %gs
+        
+        subq $4, %rsp
+        
+        /* Handler call */
+        movq $\intNum, %rdi
+        
+        leaq  __interrupt_handlers, %r8
+        call  *\intNum*8(%r8)
+                
+        /* Point the stack to the saved context */
+        addq  $4, %rsp
+        
+        /* Context restore */
+        popw  %gs
+        popw  %fs
+        popq  %rdx
+        popq  %rcx
+        popq  %rbx
+        popq  %rax
+        popq  %rsi
+        popq  %rdi
+        popq  %rbp
+
+        /* Error code must not be onto the stack for proper IRET operation */
+        addq $8, %rsp
+        
+        iretq
+.endr
 
 /* Generic wrapper for exception without error code */
 .irp exceptionNum, \
@@ -176,6 +245,14 @@
 
 
 .section ".rodata"
+
+/* Align the interrupt wrapper vector table on a 32-bit boundary */
+.p2align 5, 0x0
+__interrupt_wrappers:
+.irp intNum,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  \
+             10, 11, 12, 13, 14, 15
+    .quad (__interrupt_wrapper_\intNum)
+.endr
 
 /* Align the wrapper vector table on a 32-bit boundary */
 .p2align 5, 0x0

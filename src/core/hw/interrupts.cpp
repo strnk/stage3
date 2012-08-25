@@ -2,6 +2,7 @@
 #include <kernel/hw/exceptions.hpp>
 #include <kernel/hw/segments.h>
 #include <stdlib.h>
+#include <cstdio>
 
 using namespace Stage3::Interrupts;
 
@@ -9,12 +10,35 @@ using namespace Stage3::Interrupts;
 static struct IDT::idt_register IDTR __align(0x10);
 static struct IDT::idt_entry IDTVectors[IDT_DESCRIPTOR_COUNT] __align(0x10);
 
+extern uint64_t __interrupt_wrappers[INTERRUPTS_MASKABLE_COUNT];
 interrupt_handler_t __interrupt_handlers[INTERRUPTS_MASKABLE_COUNT];
 
 void
 Stage3::Interrupts::init(void)
 {
-    Stage3::Exceptions::init();
+    int i;
+    
+    Stage3::Exceptions::init();     
+    
+    for (i = INTERRUPTS_MASKABLE_BASE; i < INTERRUPTS_MASKABLE_BASE+16; i++)
+    {
+        IDT::define_handler(i, 
+            __interrupt_wrappers[i - INTERRUPTS_MASKABLE_BASE], 0);
+        Stage3::Interrupts::define_handler(i, 
+            Stage3::Interrupts::default_handler);
+    }
+}
+
+void
+Stage3::Interrupts::define_handler(uint8_t vector, interrupt_handler_t handler)
+{
+    __interrupt_handlers[vector - INTERRUPTS_MASKABLE_BASE] = handler;
+}
+
+void
+Stage3::Interrupts::default_handler(uint64_t intNum)
+{
+    printf("K");
 }
 
 
@@ -36,7 +60,7 @@ void
 IDT::idt_register::load()
 {
     // Load the IDT
-    asm volatile("lidt %0" : : "m"(*this) : "memory");
+    asm volatile("lidt (%0)" : : "p"(this) : "memory");
 }
 
 void

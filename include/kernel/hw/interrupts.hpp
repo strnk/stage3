@@ -79,10 +79,33 @@ namespace Interrupts {
     }
 
     typedef void 
-    (*interrupt_handler_t)(int interrupt);
-
+    (*interrupt_handler_t)(uint64_t interrupt);
+    
+    void
+    define_handler(uint8_t vector, interrupt_handler_t handler);
+    
     void
     init(void);
+    
+    void
+    default_handler(uint64_t intNum);
+    
+    class Manager
+    {        
+        public:
+        
+        virtual uint8_t getType() = 0;
+        
+        virtual void init() = 0;
+        virtual void shutdown() = 0;
+        
+        virtual void enable(uint8_t irq) = 0;
+        virtual void disable(uint8_t irq) = 0;
+        
+        virtual void map(uint8_t irq, uint8_t vector) = 0;
+        virtual void eoi(uint64_t vector) = 0;
+    };
+    
 }
 }
 #endif // ASM_SOURCE

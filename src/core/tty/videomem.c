@@ -43,6 +43,8 @@ videomem_init()
 static int
 videomem_set_attribute(unsigned long attribute, unsigned long value)
 {
+    attribute = value;
+    value = attribute;
     return 0;
 }
 
@@ -116,6 +118,24 @@ videomem_handle_color_code(int code)
         videomem_cursor_attr |= 0x80;
 }
 
+void
+videomem_scrolldown()
+{
+    int x, y;
+    
+    for (y = 0; y < LINES -1; y++)
+    {
+        for (x = 0; x < COLUMNS; x++)
+        {
+            videomem[x  + (y) * COLUMNS]
+                = videomem[x  + (y+1) * COLUMNS];
+        }
+    }
+    
+    for (x = 0; x < COLUMNS; x++)
+        videomem[x  + (LINES-1) * COLUMNS].c = 0;
+}
+
 static void 
 videomem_putchar(int c)
 {
@@ -153,7 +173,10 @@ videomem_putchar(int c)
             
             
             if (videomem_cursor_y >= LINES)
-                videomem_cursor_y = 0;
+            {
+                videomem_scrolldown();
+                videomem_cursor_y--;
+            }
             break;
         
         case '\r':
@@ -203,5 +226,8 @@ videomem_do_putc(int c)
     }
     
     if (videomem_cursor_y >= LINES)
-        videomem_cursor_y = 0;
+    {
+        videomem_scrolldown();
+        videomem_cursor_y--;
+    }
 }

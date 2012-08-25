@@ -3,6 +3,7 @@
 
 #include <kernel/types.h>
 
+#define PAGING_BASE                 0xfffffffc00000000
 #define PAGING_PAGE_SIZE            4096
 
 #define PAGING_PAGE_PRESENT         0x01

@@ -35,16 +35,26 @@ SECTIONS
     {
         *(.text32)
         *(.text)
+        *(.gnu.linkonce.t*)
     }
 
     .data ALIGN(0x1000) : AT(ADDR(.data) - VIRT_KBASE)
     {   
         *(.data) 
+        *(.gnu.linkonce.d*)
     }
 
     .rodata ALIGN(0x1000) : AT(ADDR(.rodata) - VIRT_KBASE)
     {   
+        __b_ctors = .;
+        *(SORT(.ctors*))
+        __e_ctors = .;
+
+        __b_dtors = .;
+        *(SORT(.dtors*))
+        __e_dtors = .;
         *(.rodata)
+        *(.gnu.linkonce.r*)
     }
     
     __e_load  = .;
@@ -54,6 +64,7 @@ SECTIONS
     {   
         *(.bss)
         *(COMMON)
+        *(.gnu.linkonce.b*)
     }
     
     __e_kernel  = .;

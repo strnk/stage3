@@ -12,7 +12,7 @@ vsnprintf(char *str, size_t len, const char *format, va_list ap)
 {
     size_t i, result;
 
-    if (!str || !format || (len < 0))
+    if (!str || !format)
         return -1;
         
     result = 0;
