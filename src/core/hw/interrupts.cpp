@@ -10,6 +10,8 @@ using namespace Stage3::Interrupts;
 static struct IDT::idt_register IDTR __align(0x10);
 static struct IDT::idt_entry IDTVectors[IDT_DESCRIPTOR_COUNT] __align(0x10);
 
+Stage3::Interrupts::Manager *Stage3::Interrupts::GlobalManager;
+
 extern uint64_t __interrupt_wrappers[INTERRUPTS_MASKABLE_COUNT];
 interrupt_handler_t __interrupt_handlers[INTERRUPTS_MASKABLE_COUNT];
 
@@ -38,7 +40,7 @@ Stage3::Interrupts::define_handler(uint8_t vector, interrupt_handler_t handler)
 void
 Stage3::Interrupts::default_handler(uint64_t intNum)
 {
-    printf("K");
+    printf("!%ld", intNum);
 }
 
 
@@ -107,4 +109,11 @@ IDT::define_handler(uint8_t vector, virt_addr_t handler, uint8_t dpl)
         IDTVectors[vector].set_handler(handler, dpl);
     else
         IDTVectors[vector].disable();
+}
+
+
+extern "C"
+void __int_manager_eoi(uint64_t vector)
+{
+    GlobalManager->eoi(vector);
 }

@@ -1,5 +1,6 @@
 #include <kernel/hw/ioapic.hpp>
 #include <stddef.h>
+#include <cstdio>
 
 using namespace Stage3::Interrupts;
 
@@ -16,26 +17,13 @@ IOAPIC::IOAPIC(uintptr_t base)
 }
 
 void 
-IOAPIC::map(uint8_t vector, uint8_t irq, bool level_sensitive,
+IOAPIC::setHandler(uint8_t vector, uint8_t irq, bool level_sensitive,
     bool active_low, uint8_t destination, bool destination_logical)
 {
     ioredtbl_t entry(vector, IOREDTBL_DELIV_FIXED, destination_logical,
         active_low, level_sensitive, true, destination);
- 
-    ioMap[irq] = vector;       
-    _writeReg64(IOREDTBL(irq), *(uint64_t*)&entry);
-}
 
-uint8_t
-IOAPIC::getIRQfromVector(uint8_t vector)
-{
-    for (unsigned i = 0; i < sizeof(ioMap); i++)
-    {
-        if (ioMap[i] == vector)
-            return i;
-    }
-    
-    return 0xFF;
+    _writeReg64(IOREDTBL(irq), *(uint64_t*)&entry);
 }
 
 void

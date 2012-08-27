@@ -17,6 +17,10 @@
 #define APIC_REG_DFR        0x00E0
 #define APIC_REG_SPURIOUS   0x00F0
 
+#define APIC_REG_ISR        0x0100
+#define APIC_REG_TMR        0x0170
+#define APIC_REG_IRR        0x0200
+
 #define APIC_REG_LVT_TIMER  0x0320
 #define APIC_REG_LVT_THERM  0x0330
 #define APIC_REG_LVT_PERF   0x0340
@@ -30,8 +34,15 @@ namespace Interrupts {
 
     class APICManager : public Manager
     {
+        uint32_t* APIC_BASE_ADDRESS;
         uint8_t ioapic_id;
         IOAPIC ioapic;
+        
+        struct _ioapic_map
+        {
+            bus_type_t bus_id;
+            uint8_t bus_irq;
+        } ioMap[24];
         
         public:
         APICManager();
@@ -41,11 +52,18 @@ namespace Interrupts {
         void init();
         void shutdown();
         
-        void enable(uint8_t irq);
-        void disable(uint8_t irq);
+        void enable(bus_type_t bus, uint8_t irq);
+        void disable(bus_type_t bus, uint8_t irq);
         
-        void map(uint8_t irq, uint8_t vector);
+        void map(bus_type_t bus, uint8_t irq, uint8_t vector);
+        
         void eoi(uint64_t vector);
+        
+        private:
+        void _initLAPIC();
+        uint32_t _readLAPIC(uint16_t reg);
+        void _writeLAPIC(uint16_t reg, uint32_t value);
+        int8_t _getIrqFromBus(bus_type_t bus_id, uint8_t bus_irq);
     };
     
 }

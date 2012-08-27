@@ -21,8 +21,7 @@ SECTIONS
     .loader :
     {
         __b_loader = .;
-        *(.loader32);
-        *(.loader64);
+        *(.loader*);
         __e_loader = .;
     }
 
@@ -33,8 +32,7 @@ SECTIONS
     
     .text ALIGN(0x1000) : AT(ADDR(.text) - VIRT_KBASE)
     {
-        *(.text32)
-        *(.text)
+        *(.text*)
         *(.gnu.linkonce.t*)
     }
 
@@ -53,7 +51,7 @@ SECTIONS
         __b_dtors = .;
         *(SORT(.dtors*))
         __e_dtors = .;
-        *(.rodata)
+        *(.rodata*)
         *(.gnu.linkonce.r*)
     }
     

@@ -31,7 +31,7 @@ Stage3::HeapAllocator::state_dump()
     
     for (it = (alloc_header_t*)KHEAP_BASE; (uintptr_t)it < heap_end; 
          it = it->next())
-        printf("%lx - %lx: %s %d bytes\n", (uintptr_t)it+sizeof(alloc_header_t), 
+        printf("%lx - %lx: %s %ld bytes\n", (uintptr_t)it+sizeof(alloc_header_t), 
             (uintptr_t)it + sizeof(alloc_header_t) + it->size - 1,
             (it->isFree()?"free":"used"), it->size);
 }
@@ -76,12 +76,15 @@ Stage3::HeapAllocator::malloc(size_t size)
 void*
 Stage3::HeapAllocator::calloc(size_t num, size_t size)
 {
+    num = size = num;
     return NULL;
 }
 
 void*
 Stage3::HeapAllocator::realloc(void* ptr, size_t size)
 {
+    size = size;
+    ptr = ptr;
     return NULL;
 }
 
@@ -96,13 +99,13 @@ Stage3::HeapAllocator::free(void* ptr)
     
     if (it->isFree())
     {
-        printf("HeapAllocator: freeing %lx twice !\n", ptr);
+        printf("HeapAllocator: freeing %lx twice !\n", (uintptr_t)ptr);
         return;
     }
     
     if (!it->isUsed())
     {
-        printf("HeapAllocator: freeing %lx but magic=%lx\n", ptr, it->magic);
+        printf("HeapAllocator: freeing %lx but magic=%lx\n", (uintptr_t)ptr, it->magic);
         return;
     }
     
@@ -124,6 +127,31 @@ Stage3::HeapAllocator::free(void* ptr)
         if ((uintptr_t)p->next() < heap_end)
             p->next()->p = (uintptr_t)p;
     }
+}
+
+/** C++ **/
+void *
+operator new(size_t size)
+{
+    return malloc(size);
+}
+ 
+void *
+operator new[](size_t size)
+{
+    return malloc(size);
+}
+ 
+void 
+operator delete(void *p)
+{
+    free(p);
+}
+ 
+void 
+operator delete[](void *p)
+{
+    free(p);
 }
 
 /** Helpers */

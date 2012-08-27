@@ -3,7 +3,7 @@ CORE_SRC    := stage3.cpp multiboot.c tty.c die.cpp
 
 CORE_HW     := $(CORE)/hw
 CORE_HW_SRC := interrupts.cpp exceptions.cpp interrupt_wrappers.S \
-                segmentation.cpp msr.c io.c lapic.cpp pic.c cpu.c cpuid.S \
+                segmentation.cpp msr.c lapic.cpp pic.c cpu.c cpuid.S \
                 pm_alloc.cpp paging.cpp ebda.c ioapic.cpp mp.cpp \
                 kheap.cpp
 
@@ -14,7 +14,7 @@ CORE_CPP        := $(CORE)/c++
 CORE_CPP_SRC    := pure_virtual.cpp
 
 CORE_DEVICES    := $(CORE)/devices
-CORE_DEVICES_SRC:= keyboard.cpp
+CORE_DEVICES_SRC:= keyboard.cpp 8042.cpp
 
 SOURCES :=  $(SOURCES)  \
             $(addprefix $(CORE)/, $(CORE_SRC))  \

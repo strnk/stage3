@@ -32,8 +32,7 @@ init_pic(void)
 void
 disable_pic(void)
 {
-    outb(PIC_MASTER_DATA, 0xFF);
-    outb(PIC_SLAVE_DATA, 0xFF);
+    pic_set_irq_mask(0xFFFF);
 }
 
 

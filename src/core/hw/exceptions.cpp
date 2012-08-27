@@ -122,6 +122,7 @@ Stage3::Exceptions::default_handler(uint64_t exception, const struct cpu_context
         }
         break;
     }
+    
     for (;;)
         asm volatile("hlt" : : );
 }

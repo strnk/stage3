@@ -1,5 +1,10 @@
+#include <cstdio>
+#include <kernel/die.hpp>
+
+#include <kernel/c++/cxxabi.hpp>
+
 extern "C"
-void __cxa_pure_virtual()
+void __cxxabiv1::__cxa_pure_virtual()
 {
-    // Does nothing
+    die("/!\\ pure virtual called\n");
 }

@@ -20,6 +20,7 @@ extern "C" {
 #include <multiboot.hpp>
 
 #include <kernel/devices/keyboard.hpp>
+#include <kernel/devices/8042.hpp>
 
 #include <cstdio>
 
@@ -73,7 +74,6 @@ void main(unsigned long magic, Multiboot::info_t* mbi)
     
     // Bootloader used pages
     PhysicalMemoryAllocator::mark_reserved(0x1000, 0x120000-1);
-    PhysicalMemoryAllocator::state_dump();
     
     
     /**
@@ -106,27 +106,9 @@ void main(unsigned long magic, Multiboot::info_t* mbi)
     /**
      ** Kernel heap init
      **/
-    //*(uint32_t*)0xdeadbeef = 0;
     HeapAllocator::init(1024);
     
-    void* p1 = malloc(2048),
-    *p2 = malloc(2048),
-    *p3 = malloc(32);
-    
-    HeapAllocator::state_dump();
-    
-    puts("--");
-    free(p1);
-    HeapAllocator::state_dump();
-    
-    puts("--");
-    free(p2);
-    HeapAllocator::state_dump();
-    
-    puts("--");
-    free(p3);
-    HeapAllocator::state_dump();
-    
+    Devices::PS2Controller.init();
     
     /** EBDA initialization */
     ebda_init();
@@ -134,29 +116,45 @@ void main(unsigned long magic, Multiboot::info_t* mbi)
     /** MP Table initialization */
     MP::init();
     
+    /** Interrupts manager initialization */
     if (MP::hasIOAPIC())
     {
+        puts("Interrupts: IOAPIC detected, using APIC for interrupts");
+        // Have to disable PIC to prevent IRQ coming from multiple sources
+        init_pic();
         disable_pic();
-        /*
-        Interrupts::define_handler(IRQ_ISA_KEYBOARD, 
-            keyboard_interrupt_handler);
-            
-        Interrupts::bspIOAPIC.enableIRQ(
-            Interrupts::bspIOAPIC.getIRQfromVector(
-                INTERRUPTS_MASKABLE_BASE + IRQ_ISA_KEYBOARD)
-        );*/
         
-        //__enable_interrupts();
+        Interrupts::GlobalManager = new Interrupts::APICManager();
     }
     else
     {
+        puts("Interrupts: using PIC for interrupts (STUB)");
         // PIC initialization
     }
     
-    PhysicalMemoryAllocator::state_dump();
-    /** Print end message */
-    printf(COLOR(ISO6429_RED) "Halting.");
+    Interrupts::GlobalManager->init();
     
+    Interrupts::define_handler(0x20 + IRQ_ISA_KEYBOARD,
+        Devices::_PS2Controller::_irq1);
+    Interrupts::define_handler(0x20 + IRQ_ISA_PS2, 
+        Devices::_PS2Controller::_irq12);
+    
+    Interrupts::GlobalManager->map(Interrupts::Manager::BUS_ISA, 
+        IRQ_ISA_KEYBOARD, 0x20 + IRQ_ISA_KEYBOARD);
+    Interrupts::GlobalManager->map(Interrupts::Manager::BUS_ISA, 
+        IRQ_ISA_PS2, 0x20 + IRQ_ISA_PS2);
+    
+    Interrupts::GlobalManager->enable(Interrupts::Manager::BUS_ISA,
+        IRQ_ISA_KEYBOARD);
+    Interrupts::GlobalManager->enable(Interrupts::Manager::BUS_ISA, 
+        IRQ_ISA_PS2);
+    
+    __enable_interrupts();
+    Devices::PS2Controller.autoDetect();
+    Devices::PS2Controller.enableIRQ();
+    
+    /** Print end message */
+    printf(COLOR(ISO6429_RED) "\nHalting.");
     for (;;)
         asm volatile("hlt" : : : "memory");
 }

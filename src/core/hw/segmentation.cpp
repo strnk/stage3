@@ -20,7 +20,15 @@ Stage3::GDT::init(void)
     GDTR.size = sizeof(GDT64) - 1;
     
     // Load the GDT
-    asm volatile("lgdt %0"  : : "m"(GDTR) : "memory");
+    asm volatile("lgdt %0           \n"
+                   "movq $0x10, %%rax \n"
+                   "movw %%ax, %%ss   \n" 
+                   "movw %%ax, %%ds   \n"
+                   "movw %%ax, %%es   \n"
+                   "movw %%ax, %%fs   \n"
+                   "movw %%ax, %%gs"   
+    
+                  : : "m"(GDTR) : "memory");
 }
 
 void

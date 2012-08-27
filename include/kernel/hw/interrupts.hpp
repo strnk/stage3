@@ -93,21 +93,31 @@ namespace Interrupts {
     class Manager
     {        
         public:
+        typedef enum _int_bus_type_t
+        {
+            BUS_ISA = 0,
+            BUS_PCI
+        } bus_type_t;
         
-        virtual uint8_t getType() = 0;
+        virtual ~Manager() { }
+        virtual uint8_t getType() { return 0; }
         
         virtual void init() = 0;
         virtual void shutdown() = 0;
         
-        virtual void enable(uint8_t irq) = 0;
-        virtual void disable(uint8_t irq) = 0;
+        virtual void enable(bus_type_t bus, uint8_t irq) = 0;
+        virtual void disable(bus_type_t bus, uint8_t irq) = 0;
         
-        virtual void map(uint8_t irq, uint8_t vector) = 0;
+        virtual void map(bus_type_t bus, uint8_t irq, uint8_t vector) = 0;
         virtual void eoi(uint64_t vector) = 0;
     };
     
+    extern Manager *GlobalManager;
 }
 }
+
+extern "C"
+void __int_manager_eoi(uint64_t vector);
 #endif // ASM_SOURCE
 
 #endif // _HW_INTERRUPTS_H_

@@ -73,10 +73,7 @@ Stage3::PhysicalMemoryAllocator::init(uint64_t ram_size)
 
 int
 Stage3::PhysicalMemoryAllocator::mark_reserved(phys_addr_t lower, phys_addr_t upper)
-{
-    phys_addr_t i;
-    struct page_descr* page, *next;
-    
+{    
     lower = PM_PAGE_ALIGN_INF(lower);
     upper = PM_PAGE_ALIGN_SUP(upper);
     
@@ -106,7 +103,6 @@ Stage3::PhysicalMemoryAllocator::getpage()
 int
 Stage3::PhysicalMemoryAllocator::free(phys_addr_t addr)
 {    
-    int i;
     addr = PM_PAGE_ALIGN_INF(addr);
     struct page_descr* page = pm_used_pages.find(addr);
     

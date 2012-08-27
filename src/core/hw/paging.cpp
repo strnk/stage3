@@ -76,6 +76,10 @@ int
 Stage3::Paging::vmap(phys_addr_t paddr, virt_addr_t vaddr, uint32_t npage, 
     bool user)
 {
+    paddr = PM_PAGE_ALIGN_INF(paddr);
+    vaddr = PM_PAGE_ALIGN_INF(vaddr);
+    
+    //printf("VMAP %lx-%lx -> %lx\n", paddr, paddr+npage*PAGING_PAGE_SIZE-1, vaddr);
     while (npage)
     {
         if (_page_vmap(paddr, vaddr, user) < 0)
@@ -92,6 +96,7 @@ Stage3::Paging::vmap(phys_addr_t paddr, virt_addr_t vaddr, uint32_t npage,
 int
 Stage3::Paging::vunmap(virt_addr_t vaddr, uint32_t npage)
 {
+    vaddr = PM_PAGE_ALIGN_INF(vaddr);
     //printf("VUNMAP %lx, %d pages\n", vaddr, npage);
     while (npage)
     {
@@ -157,9 +162,9 @@ struct pdpt_entry*
 pml4t_entry::ptr()
 {
     return reinterpret_cast<struct pdpt_entry*>(
-              (((phys_addr_t)base_lo & 0xFF) << 12) 
-            | ((phys_addr_t)base_mid << 16) 
-            | ((phys_addr_t)base_hi << 32)
+              (((phys_addr_t)base_lo & 0xF) << 12) 
+            | (((phys_addr_t)base_mid & 0xFFFF) << 16) 
+            | (((phys_addr_t)base_hi & 0xFF) << 32)
         );
 }
 
@@ -167,9 +172,9 @@ struct pd_entry*
 pdpt_entry::ptr()
 {
     return reinterpret_cast<struct pd_entry*>(
-              (((phys_addr_t)base_lo & 0xFF) << 12) 
-            | ((phys_addr_t)base_mid << 16) 
-            | ((phys_addr_t)base_hi << 32)
+              (((phys_addr_t)base_lo & 0xF) << 12) 
+            | (((phys_addr_t)base_mid & 0xFFFF) << 16) 
+            | (((phys_addr_t)base_hi & 0xFF) << 32)
         );
 }
 
@@ -177,9 +182,9 @@ struct pt_entry*
 pd_entry::ptr()
 {
     return reinterpret_cast<struct pt_entry*>(
-              (((phys_addr_t)base_lo & 0xFF) << 12) 
-            | ((phys_addr_t)base_mid << 16) 
-            | ((phys_addr_t)base_hi << 32)
+              (((phys_addr_t)base_lo & 0xF) << 12) 
+            | (((phys_addr_t)base_mid & 0xFFFF) << 16) 
+            | (((phys_addr_t)base_hi & 0xFF) << 32)
         );
 }
 
@@ -241,7 +246,6 @@ _page_vmap(phys_addr_t paddr, virt_addr_t vaddr, bool user)
         
     __vload_pd(pd);
     pde = &_VPD[PDoff(linear)];
-    
     // PD level
     if (!pde->isPresent())
     {
@@ -258,10 +262,15 @@ _page_vmap(phys_addr_t paddr, virt_addr_t vaddr, bool user)
     pte = &_VPT[PToff(linear)];
     
     // PT level
-    if (!pte->isPresent())
+    if (!pte->isPresent() || pte->ptr() == paddr)
         *pte = pt_entry(paddr, false, 
             PAGING_PAGE_PRESENT, PAGING_PAGE_RW,
             user, false, false, false, false);
+    else
+    {
+        printf("Warning: overwriting pte #%x, pde #%x, pdpte #%x, pml4te #%x\n",
+            PToff(linear), PDoff(linear), PDPToff(linear), PML4Toff(linear));
+    }
         
     return 0;
 }

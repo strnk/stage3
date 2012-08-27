@@ -53,9 +53,9 @@ namespace Paging {
             bool pwt, bool pcd, bool nx)
             : present(present), rw(rw), user(user), pwt(pwt), pcd(pcd),
             accessed(0), reserved1(0), __avail1(0), 
-            base_lo(((base) & 0x000000000000F000) >> 12),
+             base_lo(((base) & 0x000000000000F000) >> 12),
             base_mid(((base) & 0x00000000FFFF0000) >> 16),
-            base_hi(((base) & 0x000000FF00000000) >> 32),
+             base_hi(((base) & 0x000000FF00000000) >> 32),
             reserved2(0), __avail2(0), noexec(nx) { };  
             
         pml4t_entry()
@@ -93,9 +93,9 @@ namespace Paging {
             bool pwt, bool pcd, bool nx)
             : present(present), rw(rw), user(user), pwt(pwt), pcd(pcd),
             accessed(0), reserved1(0), __avail1(0), 
-            base_lo(((base) & 0x000000000000F000) >> 12),
+             base_lo(((base) & 0x000000000000F000) >> 12),
             base_mid(((base) & 0x00000000FFFF0000) >> 16),
-            base_hi(((base) & 0x000000FF00000000) >> 32),
+             base_hi(((base) & 0x000000FF00000000) >> 32),
             reserved2(0), __avail2(0), noexec(nx) { };  
             
         pdpt_entry()
@@ -137,9 +137,10 @@ namespace Paging {
             bool user, bool pwt, bool pcd, bool size, bool nx)
             : present(present), rw(rw), user(user), pwt(pwt), pcd(pcd),
             accessed(0), reserved1(0), size(size), reserved2(0), 
-            __avail1(0), base_lo(((base) & 0x000000000000F000) >> 12),
+            __avail1(0), 
+             base_lo(((base) & 0x000000000000F000) >> 12),
             base_mid(((base) & 0x00000000FFFF0000) >> 16),
-            base_hi(((base) & 0x000000FF00000000) >> 32),
+             base_hi(((base) & 0x000000FF00000000) >> 32),
             reserved3(0), __avail2(0), noexec(nx) { };
             
         pd_entry()

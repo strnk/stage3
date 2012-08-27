@@ -193,7 +193,15 @@ setupTempGDT:
 _64bitEntry:
 1:
     cli
-    movw    $16, %ax            // set the data segments
+    xorl    %eax, %eax
+    movl    %eax, %edx
+    movl    $0xc0000100, %ecx
+    wrmsr
+    incq    %rcx
+    wrmsr
+
+    movq    $0x10, %rax
+    movw    %ax, %ss
     movw    %ax, %ds
     movw    %ax, %es
     movw    %ax, %fs
@@ -259,7 +267,7 @@ TempGDT:
     .word 0                 // limit 0-31
     .word 0                 // base 0-31
     .byte 0                 // base 32-47
-    .byte 0b10010000        // access
+    .byte 0b10010010        // access
     .byte 0b00000000        // granularity
     .byte 0                 // base 48-64
     

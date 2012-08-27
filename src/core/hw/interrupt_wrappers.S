@@ -7,8 +7,10 @@
 .global __interrupt_wrappers
 .extern __exception_handlers
 .extern __interrupt_handlers
+.extern __int_manager_eoi
 
 .text
+.code64
 
 /* Generic wrapper for interrupts */
 .irp intNum,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  \
@@ -33,9 +35,6 @@
         |------------------|
         */
 
-        /* Dummy error code */
-        pushq $0
-        
         /* Context backup */
         pushq %rbp
         movq %rsp, %rbp
@@ -52,13 +51,17 @@
         subq $4, %rsp
         
         /* Handler call */
+        movq %rsp, %rsi
         movq $\intNum, %rdi
         
         leaq  __interrupt_handlers, %r8
         call  *\intNum*8(%r8)
+        
+        movq $\intNum, %rdi
+        movq $__int_manager_eoi, %r8
+        call *%r8
                 
-        /* Point the stack to the saved context */
-        addq  $4, %rsp
+        addq $4, %rsp
         
         /* Context restore */
         popw  %gs
@@ -69,10 +72,8 @@
         popq  %rax
         popq  %rsi
         popq  %rdi
+        movq  %rbp, %rsp
         popq  %rbp
-
-        /* Error code must not be onto the stack for proper IRET operation */
-        addq $8, %rsp
         
         iretq
 .endr

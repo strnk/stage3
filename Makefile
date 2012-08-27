@@ -15,7 +15,8 @@ CXXFLAGS    := -g -m64 -Wall -Wextra \
                -DSTAGE3 -D__PHYS_KBASE=$(PHYS_KBASE) \
                -D__VIRT_KBASE=$(VIRT_KBASE) \
                -fno-rtti -nostartfiles -fno-exceptions \
-               -fno-stack-protector -std=c++0x
+               -fno-stack-protector -std=c++0x -fno-builtin \
+               -nodefaultlibs
 
 LD          := ld
 LDFLAGS     := --defsym PHYS_KBASE=$(PHYS_KBASE) \

@@ -64,8 +64,6 @@ namespace Interrupts {
     
     class IOAPIC
     {
-        uint32_t ioMap[24];
-
         #define IOAPICID            0x00
         #define IOAPICVER           0x01
         #define IOAPICARB           0x02
@@ -79,9 +77,10 @@ namespace Interrupts {
         
         void enableIRQ(uint8_t irq);
         void disableIRQ(uint8_t irq);
-        uint8_t getIRQfromVector(uint8_t vector);
-        void map(uint8_t vector, uint8_t irq, bool level_sensitive,
+        
+        void setHandler(uint8_t vector, uint8_t irq, bool level_sensitive,
             bool active_low, uint8_t destination, bool destination_logical);
+            
         private:
         uint32_t    _readReg32(uint8_t offset);
         uint64_t    _readReg64(uint8_t offset);

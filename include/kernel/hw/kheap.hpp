@@ -59,5 +59,23 @@ using Stage3::HeapAllocator::malloc;
 using Stage3::HeapAllocator::calloc;
 using Stage3::HeapAllocator::realloc;
 using Stage3::HeapAllocator::free;
+    
+void *
+operator new(size_t size);
+ 
+void *
+operator new[](size_t size);
+ 
+void 
+operator delete(void *p);
+ 
+void 
+operator delete[](void *p);
+
+/** Placement operators */
+inline void *operator new(size_t, void *p)     throw() { return p; }
+inline void *operator new[](size_t, void *p)   throw() { return p; }
+inline void  operator delete  (void *, void *) throw() { };
+inline void  operator delete[](void *, void *) throw() { };
 
 #endif // _HW_KHEAP_H_
